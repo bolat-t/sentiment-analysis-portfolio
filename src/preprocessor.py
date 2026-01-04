@@ -12,6 +12,7 @@ from nltk.stem import WordNetLemmatizer
 from typing import List, Optional
 import logging
 
+
 logger = logging.getLogger(__name__)
 
 class TextPreprocessor:
@@ -24,6 +25,7 @@ class TextPreprocessor:
             nltk.download('wordnet', quiet=True)
             nltk.download('omw-1.4', quiet=True)
             nltk.download('punkt', quiet=True)
+            nltk.download('punkt_tab')
             
             self.stop_words = set(stopwords.words('english'))
             self.lemmatizer = WordNetLemmatizer()
