@@ -1,11 +1,8 @@
-"""
-Main entry point for the sentiment analysis portfolio project.
-"""
-
 import argparse
 import logging
 from pathlib import Path
 import sys
+import time
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent / "src"))
@@ -96,7 +93,9 @@ def run_analysis(text: str = None):
             print(f"\n📝 Demo {i}: {demo_text}")
             print("-" * 40)
             
+            start_time = time.time()
             result = analyzer.get_ensemble_prediction(demo_text)
+            processing_time = time.time() - start_time
             
             if 'error' not in result:
                 sentiment = result['sentiment']
@@ -104,15 +103,22 @@ def run_analysis(text: str = None):
                 emoji = "😊" if sentiment == 'positive' else "😞"
                 
                 print(f"{emoji} Sentiment: {sentiment.upper()} (confidence: {confidence:.4f})")
+                
+                # Log to performance monitor
+                monitor.log_prediction('Ensemble', confidence, processing_time)
             else:
                 print(f"❌ Error: {result['error']}")
         
         # Show performance summary
-        perf_summary = monitor.get_performance_summary()
-        print(f"\n⚡ Performance Summary:")
-        print(f"   Total predictions: {perf_summary['total_predictions']}")
-        print(f"   Average processing time: {perf_summary['avg_processing_time']:.4f}s")
-        print(f"   Predictions per second: {perf_summary['predictions_per_second']:.2f}")
+        try:
+            perf_summary = monitor.get_performance_summary()
+            if 'error' not in perf_summary:
+                print(f"\n⚡ Performance Summary:")
+                print(f"   Total predictions: {perf_summary['total_predictions']}")
+                print(f"   Average processing time: {perf_summary['avg_processing_time']:.4f}s")
+                print(f"   Predictions per second: {perf_summary['predictions_per_second']:.2f}")
+        except Exception as e:
+            print(f"\n⚠️ Performance summary unavailable: {e}")
 
 def generate_visualizations():
     """Generate all visualization plots and reports."""
