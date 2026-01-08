@@ -136,6 +136,21 @@ def load_custom_css():
         font-style: italic;
     }
     
+    /* FIX: Remove red focus outline on textarea */
+    .stTextArea textarea:focus-visible {
+        outline: none !important;
+        box-shadow: none !important;
+    }
+    
+    /* FIX: Remove Streamlit red focus outline (BaseWeb) */
+    div[data-baseweb="textarea"]:focus-within {
+        outline: none !important;
+        box-shadow: none !important;
+        border-color: transparent !important;
+    }
+
+
+    
     /* ========== BUTTON STYLES ========== */
     /* Primary Button - Teal Gradient */
     .stButton button[kind="primary"] {
@@ -463,6 +478,14 @@ def load_custom_css():
         padding: 1.5rem !important;
     }
     
+    /* FIX: Expander content turning white */
+    .streamlit-expanderContent,
+    .streamlit-expanderContent * {
+    background-color: transparent !important;
+    color: #cbd5e1 !important;
+    }   
+
+    
     /* ========== INFO/SUCCESS/WARNING BOXES ========== */
     .stAlert {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%) !important;
@@ -473,6 +496,18 @@ def load_custom_css():
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
         backdrop-filter: blur(10px);
     }
+    
+    /* FIX: st.info visibility on dark background */
+    .stAlert[data-baseweb="notification"] {
+        background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)) !important;
+        color: #e5e7eb !important;
+        border-left: 4px solid #a78bfa !important;
+    }
+
+    .stAlert strong {
+        color: #ffffff !important;
+    }
+
     
     /* ========== DATAFRAME STYLES ========== */
     [data-testid="stDataFrame"] {
