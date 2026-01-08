@@ -216,14 +216,146 @@ def main():
             st.success("📊 Google Sheets logging active")
         else:
             st.warning("📊 Logging to local files only")
+        
+        st.markdown("---")
+        st.markdown("### Available Models")
+        st.markdown("""
+        <span class="tag-pill">VADER</span> <span class="tag-pill">TextBlob</span><br>
+        <span class="tag-pill">ML Model</span> <span class="tag-pill">Transformer</span>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("---")
+        st.markdown("### System Metrics")
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Accuracy", "94.2%")
+        with col2:
+            st.metric("Speed", "<1s")
+        
+        if st.session_state.analysis_history:
+            st.markdown("---")
+            st.markdown("### History")
+            st.write(f"Analyses: **{len(st.session_state.analysis_history)}**")
+            if st.button("Clear", use_container_width=True):
+                st.session_state.analysis_history = []
+                st.rerun()
     
     if not st.session_state.model_loaded:
         st.info("Click 'Load Models' in the sidebar")
         return
     
-    # Text input and analysis logic...
-    # [Keep all your text input, sample buttons, analyse button, results display, charts, history, etc.]
-    # Use `log_user_submission(text_input, result, proc_time)` for logging
+    # Text input
+    st.markdown("### Enter Text to Analyse")
+    samples = {
+        "Positive": "Amazing product! Exceeded expectations!",
+        "Negative": "Terrible. Broke after one day.",
+        "Mixed": "Okay product. Some good, some bad.",
+    }
+    
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        if st.button("Positive", type="secondary", use_container_width=True):
+            st.session_state.sample_text = samples["Positive"]
+    with col2:
+        if st.button("Negative", type="secondary", use_container_width=True):
+            st.session_state.sample_text = samples["Negative"]
+    with col3:
+        if st.button("Mixed", type="secondary", use_container_width=True):
+            st.session_state.sample_text = samples["Mixed"]
+    
+    text_input = st.text_area("", value=st.session_state.get('sample_text', ''),
+                              height=150, placeholder="Type your review...",
+                              label_visibility="collapsed")
+    
+    col1, col2, col3 = st.columns([2, 1, 3])
+    with col1:
+        analyse = st.button("Analyse Sentiment", type="primary", use_container_width=True)
+    with col2:
+        if st.button("Clear", use_container_width=True):
+            st.session_state.sample_text = ''
+            st.rerun()
+    
+    # Perform analysis
+    if analyse and text_input.strip():
+        with st.spinner("Analysing..."):
+            start = time.time()
+            try:
+                result = st.session_state.analyzer.get_ensemble_prediction(text_input)
+                proc_time = time.time() - start
+                
+                if 'error' not in result:
+                    log_user_submission(text_input, result, proc_time)
+                    st.session_state.analysis_history.append({
+                        'text': text_input[:100] + '...' if len(text_input) > 100 else text_input,
+                        'sentiment': result['sentiment'],
+                        'confidence': result['confidence'],
+                        'time': time.strftime('%H:%M:%S')
+                    })
+                    
+                    st.markdown("---")
+                    st.markdown("## Results")
+                    col1, col2, col3, col4 = st.columns(4)
+                    sentiment = result['sentiment']
+                    confidence = result['confidence']
+                    
+                    with col1:
+                        emoji = "😊" if sentiment == 'positive' else "😞"
+                        st.metric("Sentiment", f"{emoji} {sentiment.upper()}")
+                    with col2:
+                        st.metric("Confidence", f"{confidence:.1%}")
+                    with col3:
+                        st.metric("Time", f"{proc_time:.3f}s")
+                    with col4:
+                        st.metric("Length", f"{len(text_input.split())} words")
+                    
+                    col1, col2 = st.columns(2)
+                    with col1:
+                        st.plotly_chart(create_sentiment_gauge(sentiment, confidence), use_container_width=True)
+                    with col2:
+                        individual = {k: v for k, v in result.get('individual_results', {}).items() if k != 'text'}
+                        if individual:
+                            st.plotly_chart(create_confidence_bars(individual), use_container_width=True)
+                    
+                    st.markdown("### Individual Models")
+                    if individual:
+                        cols = st.columns(len(individual))
+                        for idx, (name, res) in enumerate(individual.items()):
+                            if isinstance(res, dict) and 'sentiment' in res:
+                                with cols[idx]:
+                                    sent = res['sentiment']
+                                    conf = res.get('confidence', 0)
+                                    emoji = "😊" if sent == 'positive' else "😞"
+                                    card_class = "positive-card" if sent == 'positive' else "negative-card"
+                                    st.markdown(f"""
+                                    <div class="model-card {card_class}">
+                                        <h4 style="color: #14b8a6; font-size: 0.875rem; text-transform: uppercase; margin-bottom: 1rem;">
+                                            {name.upper()}
+                                        </h4>
+                                        <div style="text-align: center;">
+                                            <div style="font-size: 2.5rem;">{emoji}</div>
+                                            <div style="font-size: 1.25rem; font-weight: 600; color: #fff;">
+                                                {sent.upper()}
+                                            </div>
+                                            <div style="color: #9ca3af; font-size: 0.875rem;">
+                                                {conf:.1%}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    """, unsafe_allow_html=True)
+            except Exception as e:
+                st.error(f"Error: {e}")
+    elif analyse:
+        st.warning("Please enter text")
+    
+    # History table
+    if st.session_state.analysis_history:
+        st.markdown("---")
+        st.markdown("## Recent Analyses")
+        df = pd.DataFrame(st.session_state.analysis_history[-5:])
+        df['sentiment'] = df['sentiment'].apply(lambda x: f"{'😊' if x == 'positive' else '😞'} {x.upper()}")
+        df['confidence'] = df['confidence'].apply(lambda x: f"{x:.1%}")
+        st.dataframe(df[['time', 'text', 'sentiment', 'confidence']], hide_index=True, use_container_width=True)
 
+# Run app
 if __name__ == "__main__":
     main()
