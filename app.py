@@ -236,6 +236,22 @@ def create_confidence_bars(results):
 
 def main():
     load_custom_css()
+    from google_sheets_logger import initialise_logger
+
+# At the top of main(), after load_custom_css()
+if 'logger' not in st.session_state:
+    st.session_state.logger = initialise_logger()
+
+# Replace log_user_submission() with:
+def log_user_submission(text, result, processing_time):
+    # Try Google Sheets first
+    if st.session_state.logger.enabled:
+        st.session_state.logger.log_submission(text, result, processing_time)
+    
+    # Also keep local JSON logs as backup
+    log_dir = Path("logs")
+    log_dir.mkdir(exist_ok=True)
+    # ... (keep existing JSON logging code)
     
     # Initialise Google Sheets logger
     if SHEETS_AVAILABLE and st.session_state.logger is None:
