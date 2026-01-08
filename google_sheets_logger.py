@@ -10,6 +10,7 @@ import json
 import streamlit as st
 from pathlib import Path
 
+
 class GoogleSheetsLogger:
     """Log sentiment analysis data to Google Sheets"""
     
@@ -163,29 +164,27 @@ class GoogleSheetsLogger:
             return False
 
 
+
 def load_google_credentials():
     """
     Load Google Sheets credentials from Streamlit secrets or local file
-    
-    Returns:
-        dict: Credentials dictionary or None
     """
     try:
-        # Try to load from Streamlit secrets (for deployed app)
+        # First try Streamlit secrets
         if hasattr(st, 'secrets') and 'google_sheets' in st.secrets:
             return dict(st.secrets['google_sheets'])
-        
-        # Try to load from local file (for development)
-        creds_file = Path('google_credentials.json')
+
+        # Use path relative to this file
+        creds_file = Path(__file__).parent / 'google_credentials.json'
         if creds_file.exists():
             with open(creds_file, 'r') as f:
                 return json.load(f)
-        
+
         return None
-        
     except Exception as e:
         print(f"Could not load Google credentials: {e}")
         return None
+
 
 
 # Example usage in your app
