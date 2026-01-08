@@ -70,3 +70,6 @@ visualizations/plots/*.html
 # Environment variables
 .env
 .env.local
+
+# Keys
+google_credentials.json
