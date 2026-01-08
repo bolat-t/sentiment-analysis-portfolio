@@ -27,6 +27,22 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# Add to your app.py
+import requests
+
+def log_to_external_service(data):
+    """Send logs to an external API/database"""
+    # Option 1: Google Sheets API
+    # Option 2: Firebase/Supabase
+    # Option 3: Your own server endpoint
+    # Option 4: Cloud storage (AWS S3, Google Cloud Storage)
+    
+    # Example: Send to your own server
+    try:
+        requests.post('https://your-server.com/api/logs', json=data)
+    except:
+        pass  # Silent fail if server is down
+
 # Import custom CSS from separate file for cleaner code
 def load_custom_css():
     """Load custom CSS styling"""
