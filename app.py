@@ -29,7 +29,7 @@ except ImportError:
 # Page configuration
 st.set_page_config(
     page_title="Sentiment Analysis | AI Portfolio",
-    page_icon="🎭",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
@@ -371,7 +371,7 @@ def load_custom_css():
     
     .negative-card {
         border-left: 4px solid #f87171 !important;
-        background: linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, transparent 100%),
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.25) 0%, transparent 100%),
                     linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
     }
     
@@ -387,7 +387,17 @@ def load_custom_css():
         font-weight: 700;
         letter-spacing: 0.1em;
     }
-    
+                
+    .model-card.positive-card .model-card-sentiment {
+        color: #34d399; /* green */
+    }
+
+    .model-card.negative-card .model-card-sentiment {
+        color: #f87171; /* red */
+    }
+
+
+                
     .model-card-emoji {
         font-size: 3rem;
         margin-bottom: 0.75rem;
@@ -604,18 +614,49 @@ if 'analyzer' not in st.session_state:
     st.session_state.analysis_history = []
     st.session_state.logger = None
 
-# Logging function
+# Rate limiting state
+if 'last_log_time' not in st.session_state:
+    st.session_state.last_log_time = 0
+
+if 'log_count' not in st.session_state:
+    st.session_state.log_count = 0
+
+def can_log_submission(min_interval=5, max_logs=50):
+    """Return True if we are allowed to log submission."""
+    now = time.time()
+
+    # Too soon since last log?
+    if now - st.session_state.last_log_time < min_interval:
+        return False
+
+    # Max logs reached?
+    if st.session_state.log_count >= max_logs:
+        return False
+
+    return True
+
+
 def log_user_submission(text, result, processing_time):
-    """Log to Google Sheets and local JSON"""
+    """Log to Google Sheets and local JSON with rate limiting"""
+
+    if not can_log_submission():
+        return False  # <-- Rate-limited, do not log
+
+    # Update rate limit counters
+    st.session_state.last_log_time = time.time()
+    st.session_state.log_count += 1
+
+    # Google Sheets logging
     if st.session_state.logger and st.session_state.logger.enabled:
         try:
             st.session_state.logger.log_submission(text, result, processing_time)
         except Exception as e:
             print(f"Google Sheets logging failed: {e}")
-    
+
+    # Local JSON logging
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
-    
+
     log_entry = {
         'timestamp': datetime.now().isoformat(),
         'text': text[:500],
@@ -624,9 +665,9 @@ def log_user_submission(text, result, processing_time):
         'confidence': float(result.get('confidence', 0)),
         'processing_time': float(processing_time),
     }
-    
+
     log_file = log_dir / f"submissions_{datetime.now().strftime('%Y%m%d')}.json"
-    
+
     try:
         logs = []
         if log_file.exists():
@@ -637,6 +678,11 @@ def log_user_submission(text, result, processing_time):
             json.dump(logs, f, indent=2)
     except Exception as e:
         print(f"Local logging failed: {e}")
+
+    return True  # <-- Successfully logged
+
+
+
 
 @st.cache_resource
 def load_analyzer():
@@ -937,15 +983,18 @@ def main():
                 
                 if 'error' not in result:
                     # Log submission
-                    log_user_submission(text_input, result, proc_time)
-                    
-                    # Add to history
+                                    logged = log_user_submission(text_input, result, proc_time)
+
+                if logged:
                     st.session_state.analysis_history.append({
                         'text': text_input[:100] + '...' if len(text_input) > 100 else text_input,
                         'sentiment': result['sentiment'],
                         'confidence': result['confidence'],
                         'time': time.strftime('%H:%M:%S')
                     })
+                else:
+                    st.toast("⏳ Analysis ran, but logging was rate-limited.", icon="⚠️")
+
                     
                     st.markdown("---")
                     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
@@ -959,7 +1008,13 @@ def main():
                     
                     with col1:
                         emoji = "😊" if sentiment == 'positive' else "😞"
-                        st.metric("Overall Sentiment", f"{emoji} {sentiment.upper()}")
+                        color = "#34d399" if sentiment == 'positive' else "#f87171"  # green / red
+                        st.markdown(f"""
+                            <div style="font-size: 1.5rem; font-weight: 600; color: {color};">
+                                {emoji} {sentiment.upper()}
+                            </div>
+                        """, unsafe_allow_html=True)
+
                     with col2:
                         st.metric("Confidence Score", f"{confidence:.1%}")
                     with col3:
@@ -1002,13 +1057,14 @@ def main():
                                     
                                     st.markdown(f"""
                                     <div class="model-card {card_class} animate-fade-in">
-                                        <div class="model-card-title">{name.upper()}</div>
-                                        <div style="text-align: center;">
-                                            <div class="model-card-emoji">{emoji}</div>
-                                            <div class="model-card-sentiment">{sent.upper()}</div>
-                                            <div class="model-card-confidence">Confidence: {conf:.1%}</div>
-                                        </div>
+                                    <div class="model-card-title">{name.upper()}</div>
+                                    <div style="text-align: center;">
+                                        <div class="model-card-emoji">{emoji}</div>
+                                        <div class="model-card-sentiment">{sent.upper()}</div>
+                                        <div class="model-card-confidence">Confidence: {conf:.1%}</div>
                                     </div>
+                                </div>
+
                                     """, unsafe_allow_html=True)
                     
                     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
