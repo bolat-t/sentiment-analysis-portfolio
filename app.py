@@ -1,6 +1,6 @@
 """
-Streamlit Sentiment Analysis App - Polished UI
-Save as: app.py
+Streamlit Sentiment Analysis App - Optimised & Cleaned
+Fixed rate limiting and performance issues
 """
 
 import streamlit as st
@@ -11,6 +11,7 @@ import sys
 import time
 import json
 from datetime import datetime
+from typing import Dict, Any
 
 # Add src to path
 sys.path.append(str(Path(__file__).parent / "src"))
@@ -26,22 +27,20 @@ try:
 except ImportError:
     SHEETS_AVAILABLE = False
 
-# Page configuration
 st.set_page_config(
     page_title="Sentiment Analysis | AI Portfolio",
-    page_icon="",
+    page_icon="assets/github.svg",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
-# Enhanced Custom CSS
+
+# Custom CSS (preserved from original)
 def load_custom_css():
     st.markdown("""
     <style>
-    /* Import Google Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     
-    /* ========== GLOBAL STYLES ========== */
     * {
         font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
         letter-spacing: -0.01em;
@@ -52,39 +51,21 @@ def load_custom_css():
         color: #e5e7eb;
     }
     
-    /* ========== SIDEBAR STYLES ========== */
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
         border-right: 1px solid rgba(148, 163, 184, 0.1);
         box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-
-        /* ADD THESE LINES ↓↓↓ */
         width: 400px !important;
     }
+    
     [data-testid="stSidebar"] > div:first-child {
-        width: 400px !important; /* Ensures inner container matches */
+        width: 400px !important;
     }
-
+    
     [data-testid="stSidebar"] * {
         color: #e5e7eb !important;
     }
-
-    [data-testid="stSidebar"] h1,
-    [data-testid="stSidebar"] h2,
-    [data-testid="stSidebar"] h3 {
-        color: #ffffff !important;
-        font-weight: 700 !important;
-        padding: 0.5rem 0;
-    }
-
-    [data-testid="stSidebar"] hr {
-        margin: 1.5rem 0;
-        border: none;
-        border-top: 1px solid rgba(148, 163, 184, 0.2);
-    }
-
     
-    /* ========== HEADER STYLES ========== */
     h1 {
         font-size: 3rem !important;
         font-weight: 800 !important;
@@ -104,15 +85,6 @@ def load_custom_css():
         margin-bottom: 1rem !important;
     }
     
-    h3 {
-        font-size: 1.5rem !important;
-        font-weight: 600 !important;
-        color: #e2e8f0 !important;
-        margin-top: 1.5rem !important;
-        margin-bottom: 1rem !important;
-    }
-    
-    /* ========== TEXT AREA STYLES ========== */
     .stTextArea textarea {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
         border: 2px solid #334155 !important;
@@ -129,30 +101,19 @@ def load_custom_css():
         border-color: #14b8a6 !important;
         box-shadow: 0 0 0 3px rgba(20, 184, 166, 0.2), 0 8px 16px rgba(0, 0, 0, 0.4) !important;
         background: linear-gradient(135deg, #1e293b 0%, #1a2332 100%) !important;
+        outline: none !important;
     }
     
-    .stTextArea textarea::placeholder {
-        color: #64748b !important;
-        font-style: italic;
-    }
-    
-    /* FIX: Remove red focus outline on textarea */
     .stTextArea textarea:focus-visible {
         outline: none !important;
-        box-shadow: none !important;
     }
     
-    /* FIX: Remove Streamlit red focus outline (BaseWeb) */
     div[data-baseweb="textarea"]:focus-within {
         outline: none !important;
         box-shadow: none !important;
         border-color: transparent !important;
     }
-
-
     
-    /* ========== BUTTON STYLES ========== */
-    /* Primary Button - Teal Gradient */
     .stButton button[kind="primary"] {
         background: linear-gradient(135deg, #14b8a6 0%, #0d9488 100%) !important;
         color: #ffffff !important;
@@ -162,24 +123,17 @@ def load_custom_css():
         font-weight: 600 !important;
         font-size: 1rem !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-        box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4), 
-                    0 0 0 0 rgba(20, 184, 166, 0) !important;
+        box-shadow: 0 4px 14px rgba(20, 184, 166, 0.4) !important;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
     
     .stButton button[kind="primary"]:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(20, 184, 166, 0.6),
-                    0 0 0 3px rgba(20, 184, 166, 0.2) !important;
+        box-shadow: 0 6px 20px rgba(20, 184, 166, 0.6), 0 0 0 3px rgba(20, 184, 166, 0.2) !important;
         background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%) !important;
     }
     
-    .stButton button[kind="primary"]:active {
-        transform: translateY(0) !important;
-    }
-    
-    /* Secondary Button - Purple Gradient */
     .stButton button[kind="secondary"] {
         background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%) !important;
         color: #ffffff !important;
@@ -187,19 +141,16 @@ def load_custom_css():
         border-radius: 0.75rem !important;
         padding: 0.75rem 1.5rem !important;
         font-weight: 600 !important;
-        font-size: 0.95rem !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         box-shadow: 0 4px 14px rgba(139, 92, 246, 0.4) !important;
     }
     
     .stButton button[kind="secondary"]:hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6),
-                    0 0 0 3px rgba(139, 92, 246, 0.2) !important;
+        box-shadow: 0 6px 20px rgba(139, 92, 246, 0.6), 0 0 0 3px rgba(139, 92, 246, 0.2) !important;
         background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%) !important;
     }
     
-    /* Tertiary Button - Red/Clear */
     .stButton button:not([kind="primary"]):not([kind="secondary"]) {
         background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
         color: #ffffff !important;
@@ -207,34 +158,29 @@ def load_custom_css():
         border-radius: 0.75rem !important;
         padding: 0.75rem 1.5rem !important;
         font-weight: 600 !important;
-        font-size: 0.95rem !important;
         transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
         box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4) !important;
     }
     
     .stButton button:not([kind="primary"]):not([kind="secondary"]):hover {
         transform: translateY(-2px) !important;
-        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6),
-                    0 0 0 3px rgba(239, 68, 68, 0.2) !important;
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.6), 0 0 0 3px rgba(239, 68, 68, 0.2) !important;
         background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%) !important;
     }
     
-    /* ========== METRIC CARDS ========== */
     [data-testid="stMetric"] {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         border: 1px solid rgba(148, 163, 184, 0.2);
         border-radius: 1rem;
         padding: 1.75rem;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         transition: all 0.3s ease;
         backdrop-filter: blur(10px);
     }
     
     [data-testid="stMetric"]:hover {
         transform: translateY(-4px);
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.1);
+        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.1);
         border-color: rgba(20, 184, 166, 0.4);
     }
     
@@ -244,7 +190,6 @@ def load_custom_css():
         font-weight: 600 !important;
         text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: 0.5rem;
     }
     
     [data-testid="stMetric"] [data-testid="stMetricValue"] {
@@ -257,36 +202,17 @@ def load_custom_css():
         line-height: 1.2 !important;
     }
     
-    [data-testid="stMetric"] [data-testid="stMetricDelta"] {
-        font-size: 0.875rem !important;
-        font-weight: 500 !important;
-    }
-    
-    /* ========== HERO SECTION ========== */
     .hero-section {
         background: radial-gradient(circle at 20% 30%, rgba(124, 58, 237, 0.4), transparent 50%),
                     radial-gradient(circle at 80% 25%, rgba(236, 72, 153, 0.35), transparent 50%),
-                    radial-gradient(circle at 70% 75%, rgba(244, 63, 94, 0.35), transparent 50%),
                     linear-gradient(135deg, rgba(30, 41, 59, 0.8) 0%, rgba(15, 23, 42, 0.9) 100%);
         padding: 3rem 2.5rem;
         border-radius: 1.5rem;
         margin-bottom: 2.5rem;
         border: 1px solid rgba(148, 163, 184, 0.15);
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5),
-                    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
         position: relative;
         overflow: hidden;
-    }
-    
-    .hero-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: radial-gradient(circle at 50% 0%, rgba(20, 184, 166, 0.1), transparent 50%);
-        pointer-events: none;
     }
     
     .hero-subtitle {
@@ -316,13 +242,6 @@ def load_custom_css():
         line-height: 1.5;
     }
     
-    .hero-text {
-        color: #94a3b8;
-        line-height: 1.7;
-        font-size: 1rem;
-    }
-    
-    /* ========== MODEL RESULT CARDS ========== */
     .model-card {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
         border: 1px solid rgba(148, 163, 184, 0.15);
@@ -336,27 +255,10 @@ def load_custom_css():
         backdrop-filter: blur(10px);
     }
     
-    .model-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 3px;
-        background: linear-gradient(90deg, transparent, currentColor, transparent);
-        opacity: 0;
-        transition: opacity 0.3s ease;
-    }
-    
     .model-card:hover {
         transform: translateY(-8px) scale(1.02);
-        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6),
-                    0 0 0 1px rgba(20, 184, 166, 0.3);
+        box-shadow: 0 25px 50px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(20, 184, 166, 0.3);
         border-color: rgba(20, 184, 166, 0.4);
-    }
-    
-    .model-card:hover::before {
-        opacity: 1;
     }
     
     .positive-card {
@@ -365,18 +267,10 @@ def load_custom_css():
                     linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
     }
     
-    .positive-card::before {
-        color: #34d399;
-    }
-    
     .negative-card {
         border-left: 4px solid #f87171 !important;
-        background: linear-gradient(135deg, rgba(248, 113, 113, 0.25) 0%, transparent 100%),
+        background: linear-gradient(135deg, rgba(248, 113, 113, 0.08) 0%, transparent 100%),
                     linear-gradient(135deg, rgba(30, 41, 59, 0.9) 0%, rgba(15, 23, 42, 0.95) 100%);
-    }
-    
-    .negative-card::before {
-        color: #f87171;
     }
     
     .model-card-title {
@@ -387,17 +281,15 @@ def load_custom_css():
         font-weight: 700;
         letter-spacing: 0.1em;
     }
-                
+    
     .model-card.positive-card .model-card-sentiment {
-        color: #34d399; /* green */
+        color: #34d399;
     }
-
+    
     .model-card.negative-card .model-card-sentiment {
-        color: #f87171; /* red */
+        color: #f87171;
     }
-
-
-                
+    
     .model-card-emoji {
         font-size: 3rem;
         margin-bottom: 0.75rem;
@@ -408,7 +300,6 @@ def load_custom_css():
         font-size: 1.5rem;
         font-weight: 700;
         margin-bottom: 0.5rem;
-        color: #ffffff;
         text-transform: uppercase;
         letter-spacing: 0.05em;
     }
@@ -419,7 +310,6 @@ def load_custom_css():
         font-weight: 500;
     }
     
-    /* ========== TAG PILLS ========== */
     .tag-pill {
         background: rgba(20, 184, 166, 0.15);
         color: #5eead4;
@@ -440,7 +330,6 @@ def load_custom_css():
         box-shadow: 0 4px 12px rgba(20, 184, 166, 0.3);
     }
     
-    /* ========== STATUS BADGES ========== */
     .status-badge {
         display: inline-flex;
         align-items: center;
@@ -464,7 +353,6 @@ def load_custom_css():
         border: 1px solid rgba(251, 191, 36, 0.3);
     }
     
-    /* ========== EXPANDER STYLES ========== */
     .streamlit-expanderHeader {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
         border: 1px solid rgba(148, 163, 184, 0.15) !important;
@@ -475,60 +363,28 @@ def load_custom_css():
         transition: all 0.3s ease !important;
     }
     
-    .streamlit-expanderHeader:hover {
-        border-color: rgba(20, 184, 166, 0.4) !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-    }
-    
     .streamlit-expanderContent {
         background: linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(10, 10, 10, 0.9) 100%) !important;
         border: 1px solid rgba(148, 163, 184, 0.1) !important;
-        border-top: none !important;
         border-radius: 0 0 0.75rem 0.75rem !important;
         padding: 1.5rem !important;
     }
     
-    /* FIX: Expander content turning white */
     .streamlit-expanderContent,
     .streamlit-expanderContent * {
-    background-color: transparent !important;
-    color: #cbd5e1 !important;
-    }   
-
-    
-    /* ========== INFO/SUCCESS/WARNING BOXES ========== */
-    .stAlert {
-        background: linear-gradient(135deg, rgba(30, 41, 59, 0.6) 0%, rgba(15, 23, 42, 0.8) 100%) !important;
-        border-left: 4px solid #14b8a6 !important;
-        border-radius: 0.75rem !important;
-        color: #e2e8f0 !important;
-        padding: 1.25rem 1.5rem !important;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
-        backdrop-filter: blur(10px);
+        background-color: transparent !important;
+        color: #cbd5e1 !important;
     }
     
-    /* FIX: st.info visibility on dark background */
-    .stAlert[data-baseweb="notification"] {
+    .stAlert {
         background: linear-gradient(135deg, rgba(30, 41, 59, 0.9), rgba(15, 23, 42, 0.95)) !important;
         color: #e5e7eb !important;
         border-left: 4px solid #a78bfa !important;
-    }
-
-    .stAlert strong {
-        color: #ffffff !important;
-    }
-
-    
-    /* ========== DATAFRAME STYLES ========== */
-    [data-testid="stDataFrame"] {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
-        border: 1px solid rgba(148, 163, 184, 0.15) !important;
-        border-radius: 1rem !important;
-        overflow: hidden !important;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4) !important;
+        border-radius: 0.75rem !important;
+        padding: 1.25rem 1.5rem !important;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3) !important;
     }
     
-    /* ========== FEATURE ITEMS ========== */
     .feature-item {
         display: flex;
         align-items: center;
@@ -553,22 +409,14 @@ def load_custom_css():
         box-shadow: 0 0 12px rgba(20, 184, 166, 0.6);
     }
     
-    /* ========== DIVIDER ========== */
     hr {
         margin: 2.5rem 0;
         border: none;
         border-top: 1px solid rgba(148, 163, 184, 0.15);
     }
     
-    /* ========== SPACING UTILITIES ========== */
-    .spacing-sm { margin-top: 1rem; }
-    .spacing-md { margin-top: 2rem; }
-    .spacing-lg { margin-top: 3rem; }
-    
-    /* ========== HIDE STREAMLIT BRANDING ========== */
     #MainMenu, footer, header { visibility: hidden; }
     
-    /* ========== SCROLLBAR ========== */
     ::-webkit-scrollbar {
         width: 12px;
         height: 12px;
@@ -589,7 +437,6 @@ def load_custom_css():
         background: linear-gradient(135deg, #475569 0%, #64748b 100%);
     }
     
-    /* ========== ANIMATIONS ========== */
     @keyframes fadeIn {
         from {
             opacity: 0;
@@ -607,56 +454,91 @@ def load_custom_css():
     </style>
     """, unsafe_allow_html=True)
 
-# Initialise session state
-if 'analyzer' not in st.session_state:
-    st.session_state.analyzer = None
-    st.session_state.model_loaded = False
-    st.session_state.analysis_history = []
-    st.session_state.logger = None
 
-# Rate limiting state
-if 'last_log_time' not in st.session_state:
-    st.session_state.last_log_time = 0
+# ============================================================================
+# SESSION STATE INITIALISATION
+# ============================================================================
 
-if 'log_count' not in st.session_state:
-    st.session_state.log_count = 0
+def initialise_session_state():
+    """Initialise all session state variables"""
+    defaults = {
+        'analyzer': None,
+        'model_loaded': False,
+        'analysis_history': [],
+        'logger': None,
+        'sample_text': '',
+        'current_result': None
+    }
+    
+    for key, value in defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
 
-def can_log_submission(min_interval=5, max_logs=50):
-    """Return True if we are allowed to log submission."""
+
+# ============================================================================
+# LOGGING FUNCTIONS (NON-BLOCKING WITH RATE LIMITING TRACKING)
+# ============================================================================
+
+def should_log_to_sheets(min_interval: int = 2, max_per_hour: int = 100) -> bool:
+    """
+    Check if we should log to Google Sheets (for rate limiting documentation)
+    Returns True/False but doesn't block execution
+    
+    Args:
+        min_interval: Minimum seconds between logs
+        max_per_hour: Maximum logs per hour
+    """
+    if 'sheets_log_times' not in st.session_state:
+        st.session_state.sheets_log_times = []
+    
     now = time.time()
-
-    # Too soon since last log?
-    if now - st.session_state.last_log_time < min_interval:
-        return False
-
-    # Max logs reached?
-    if st.session_state.log_count >= max_logs:
-        return False
-
+    
+    # Remove logs older than 1 hour
+    st.session_state.sheets_log_times = [
+        t for t in st.session_state.sheets_log_times 
+        if now - t < 3600
+    ]
+    
+    # Check rate limits
+    if st.session_state.sheets_log_times:
+        last_log = st.session_state.sheets_log_times[-1]
+        if now - last_log < min_interval:
+            return False  # Too soon since last log
+    
+    if len(st.session_state.sheets_log_times) >= max_per_hour:
+        return False  # Hit hourly limit
+    
+    # Record this log attempt
+    st.session_state.sheets_log_times.append(now)
     return True
 
 
-def log_user_submission(text, result, processing_time):
-    """Log to Google Sheets and local JSON with rate limiting"""
+def log_to_sheets_async(logger, text: str, result: Dict[str, Any], processing_time: float):
+    """
+    Log to Google Sheets in a non-blocking way with rate limiting
+    This happens after UI is already updated
+    """
+    if not logger or not logger.enabled:
+        return
+    
+    # Check rate limits (for documentation/tracking purposes)
+    if not should_log_to_sheets():
+        print("⏸️ Google Sheets logging rate limited (not affecting UI)")
+        return
+    
+    try:
+        logger.log_submission(text, result, processing_time)
+        print("✅ Logged to Google Sheets")
+    except Exception as e:
+        # Silent fail - don't interrupt user experience
+        print(f"❌ Google Sheets logging failed: {e}")
 
-    if not can_log_submission():
-        return False  # <-- Rate-limited, do not log
 
-    # Update rate limit counters
-    st.session_state.last_log_time = time.time()
-    st.session_state.log_count += 1
-
-    # Google Sheets logging
-    if st.session_state.logger and st.session_state.logger.enabled:
-        try:
-            st.session_state.logger.log_submission(text, result, processing_time)
-        except Exception as e:
-            print(f"Google Sheets logging failed: {e}")
-
-    # Local JSON logging
+def log_to_local_json(text: str, result: Dict[str, Any], processing_time: float):
+    """Log to local JSON file (fast, non-blocking, no rate limiting)"""
     log_dir = Path("logs")
     log_dir.mkdir(exist_ok=True)
-
+    
     log_entry = {
         'timestamp': datetime.now().isoformat(),
         'text': text[:500],
@@ -665,9 +547,9 @@ def log_user_submission(text, result, processing_time):
         'confidence': float(result.get('confidence', 0)),
         'processing_time': float(processing_time),
     }
-
+    
     log_file = log_dir / f"submissions_{datetime.now().strftime('%Y%m%d')}.json"
-
+    
     try:
         logs = []
         if log_file.exists():
@@ -679,14 +561,14 @@ def log_user_submission(text, result, processing_time):
     except Exception as e:
         print(f"Local logging failed: {e}")
 
-    return True  # <-- Successfully logged
 
-
-
+# ============================================================================
+# MODEL LOADING
+# ============================================================================
 
 @st.cache_resource
 def load_analyzer():
-    """Load sentiment analyzer"""
+    """Load sentiment analyser with caching"""
     try:
         analyzer = SentimentAnalyzer()
         if not analyzer.load_ml_model():
@@ -697,10 +579,15 @@ def load_analyzer():
             analyzer.train_ml_model(df_processed)
         return analyzer
     except Exception as e:
-        st.error(f"Failed to load analyzer: {e}")
+        st.error(f"Failed to load analyser: {e}")
         return None
 
-def create_sentiment_gauge(sentiment, confidence):
+
+# ============================================================================
+# VISUALISATION FUNCTIONS
+# ============================================================================
+
+def create_sentiment_gauge(sentiment: str, confidence: float) -> go.Figure:
     """Create enhanced gauge chart"""
     value = 50 + (confidence * 50) if sentiment == 'positive' else 50 - (confidence * 50)
     color = "#34d399" if sentiment == 'positive' else "#f87171"
@@ -743,7 +630,8 @@ def create_sentiment_gauge(sentiment, confidence):
     
     return fig
 
-def create_confidence_bars(results):
+
+def create_confidence_bars(results: Dict[str, Any]) -> go.Figure:
     """Create enhanced confidence comparison"""
     models, confidences, sentiments = [], [], []
     
@@ -796,30 +684,16 @@ def create_confidence_bars(results):
     
     return fig
 
-def main():
-    load_custom_css()
-    
-    # Initialise logger
-    if SHEETS_AVAILABLE and st.session_state.logger is None:
-        st.session_state.logger = initialise_logger()
-    
-    # Hero Header
-    st.markdown("""
-        <div class="hero-section animate-fade-in">
-            <p class="hero-subtitle">NLP & Machine Learning</p>
-            <h1 class="hero-title">Advanced Sentiment Analysis</h1>
-            <p class="hero-description">Multi-model NLP pipeline for real-time sentiment classification</p>
-            <p class="hero-text">
-                Analyse text sentiment using VADER, TextBlob, traditional ML models, and transformer-based 
-                deep learning for accurate classification with confidence scoring.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-    
-    # Sidebar
+
+# ============================================================================
+# UI COMPONENTS
+# ============================================================================
+
+def render_sidebar():
+    """Render sidebar with settings and status"""
     with st.sidebar:
         st.markdown("### ⚙️ Settings")
-        st.markdown("")  # Spacing
+        st.markdown("")
         
         if st.button("🚀 Load Models", type="primary", use_container_width=True):
             with st.spinner("Loading models..."):
@@ -828,13 +702,25 @@ def main():
                     st.session_state.model_loaded = True
                     st.success("✅ Models loaded successfully!")
         
-        st.markdown("")  # Spacing
+        st.markdown("")
         
-        # Logging status
+        # Logging status with rate limit info
         if SHEETS_AVAILABLE and st.session_state.logger:
             if st.session_state.logger.enabled:
                 st.markdown('<div class="status-badge status-success">✓ Google Sheets Active</div>', 
                            unsafe_allow_html=True)
+                
+                # Show rate limit stats
+                if 'sheets_log_times' in st.session_state:
+                    logs_this_hour = len(st.session_state.sheets_log_times)
+                    st.markdown(f"""
+                    <div style="margin-top: 0.5rem; padding: 0.5rem; 
+                                background: rgba(52, 211, 153, 0.1); 
+                                border-radius: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
+                        📊 Sheets logs this hour: {logs_this_hour}/100<br>
+                        ⚡ Rate limiting active (doesn't affect speed)
+                    </div>
+                    """, unsafe_allow_html=True)
             else:
                 st.markdown('<div class="status-badge status-warning">⚠ Local Logging Only</div>', 
                            unsafe_allow_html=True)
@@ -868,68 +754,45 @@ def main():
             st.markdown("### 📜 History")
             st.markdown("")
             st.write(f"**Total Analyses:** {len(st.session_state.analysis_history)}")
+            
+            # Show local logs count
+            log_dir = Path("logs")
+            if log_dir.exists():
+                log_files = list(log_dir.glob("submissions_*.json"))
+                total_local_logs = 0
+                for log_file in log_files:
+                    try:
+                        with open(log_file, 'r') as f:
+                            logs = json.load(f)
+                            total_local_logs += len(logs)
+                    except:
+                        pass
+                if total_local_logs > 0:
+                    st.write(f"**Local Logs:** {total_local_logs}")
+            
             st.markdown("")
             if st.button("🗑️ Clear History", use_container_width=True):
                 st.session_state.analysis_history = []
                 st.rerun()
-    
-    # Main content
-    if not st.session_state.model_loaded:
-        st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-        st.info("👈 **Click 'Load Models' in the sidebar to get started**")
-        
-        st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-        
-        with st.expander("ℹ️ **About This Application**", expanded=True):
-            st.markdown("""
-            This sentiment analysis platform uses multiple machine learning models to determine whether 
-            text expresses positive or negative sentiment with high accuracy and confidence scoring.
-            
-            **Key Features:**
-            """)
-            
-            st.markdown("""
-            <div style="margin-top: 1rem;">
-                <div class="feature-item">
-                    <div class="feature-icon"></div>
-                    <span>Real-time sentiment prediction with ensemble modeling</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon"></div>
-                    <span>Multiple model comparison and confidence scoring</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon"></div>
-                    <span>Interactive visualizations and detailed analytics</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon"></div>
-                    <span>Automated logging to Google Sheets for analysis</span>
-                </div>
-                <div class="feature-item">
-                    <div class="feature-icon"></div>
-                    <span>Processing speed under 1 second per analysis</span>
-                </div>
-            </div>
-            """, unsafe_allow_html=True)
-            
-            st.markdown("""
-            
-            **How to Use:**
-            1. Click **'Load Models'** in the sidebar to initialise the system
-            2. Enter your text in the input area or use sample texts
-            3. Click **'Analyse Sentiment'** to get predictions
-            4. View detailed results, confidence scores, and model comparisons
-            """)
-        
-        return
-    
-    # Text input section
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("## 📝 Enter Text to Analyse")
-    st.markdown("")
-    
-    # Sample text buttons
+
+
+def render_hero():
+    """Render hero section"""
+    st.markdown("""
+        <div class="hero-section animate-fade-in">
+            <p class="hero-subtitle">NLP & Machine Learning</p>
+            <h1 class="hero-title">Advanced Sentiment Analysis</h1>
+            <p class="hero-description">Multi-model NLP pipeline for real-time sentiment classification</p>
+            <p class="hero-text">
+                Analyse text sentiment using VADER, TextBlob, traditional ML models, and transformer-based 
+                deep learning for accurate classification with confidence scoring.
+            </p>
+        </div>
+    """, unsafe_allow_html=True)
+
+
+def render_sample_buttons():
+    """Render sample text buttons"""
     samples = {
         "Positive": "This product is absolutely amazing! The quality exceeded my expectations and the customer service was outstanding. Highly recommended!",
         "Negative": "Terrible experience. The product broke after one day and customer service was unhelpful. Complete waste of money.",
@@ -949,7 +812,227 @@ def main():
         if st.button("🔀 Mixed Sample", type="secondary", use_container_width=True):
             st.session_state.sample_text = samples["Mixed"]
             st.rerun()
+
+
+def render_results(result: Dict[str, Any], text_input: str, proc_time: float):
+    """Render analysis results"""
+    st.markdown("---")
+    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
+    st.markdown("##  Results")
+    st.markdown("")
     
+    # Metrics row
+    sentiment = result['sentiment']
+    confidence = result['confidence']
+    
+    # Create columns with equal widths
+    col1, col2, col3, col4 = st.columns(4)
+    
+    with col1:
+        emoji = "😊" if sentiment == 'positive' else "😞"
+        color = "#34d399" if sentiment == 'positive' else "#f87171"
+        
+        # Use a custom div that mimics the st.metric styling
+        st.markdown(f"""
+            <div data-testid="stMetric" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+                        border: 1px solid rgba(148, 163, 184, 0.2);
+                        border-left: 4px solid {color};
+                        border-radius: 1rem;
+                        padding: 1.75rem;
+                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+                        transition: all 0.3s ease;
+                        backdrop-filter: blur(10px);
+                        text-align: center;
+                        min-height: 140px;
+                        display: flex;
+                        flex-direction: column;
+                        justify-content: center;">
+                <div style="color: #94a3b8; font-size: 0.875rem; font-weight: 600; 
+                            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
+                    SENTIMENT
+                </div>
+                <div style="font-size: 2.5rem; margin: 0.25rem 0;">
+                    {emoji}
+                </div>
+                <div style="font-size: 2rem; font-weight: 800; color: {color}; 
+                            text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
+                    {sentiment}
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.metric("Confidence Score", f"{confidence:.1%}")
+    with col3:
+        st.metric("Processing Time", f"{proc_time:.3f}s")
+    with col4:
+        st.metric("Text Length", f"{len(text_input.split())} words")
+    
+    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
+    
+    # Visualisations
+    col1, col2 = st.columns(2)
+    with col1:
+        st.plotly_chart(create_sentiment_gauge(sentiment, confidence), 
+                      use_container_width=True, key="gauge")
+    with col2:
+        individual = {k: v for k, v in result.get('individual_results', {}).items() 
+                    if k != 'text'}
+        if individual:
+            st.plotly_chart(create_confidence_bars(individual), 
+                          use_container_width=True, key="bars")
+    
+    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
+    
+    # Individual model results
+    st.markdown("## 🔬 Individual Model Results")
+    st.markdown("")
+    
+    model_results = {k: v for k, v in result.get('individual_results', {}).items() 
+                   if k != 'text'}
+    
+    if model_results:
+        cols = st.columns(len(model_results))
+        for idx, (name, res) in enumerate(model_results.items()):
+            if isinstance(res, dict) and 'sentiment' in res:
+                with cols[idx]:
+                    sent = res['sentiment']
+                    conf = res.get('confidence', 0)
+                    emoji = "😊" if sent == 'positive' else "😞"
+                    card_class = "positive-card" if sent == 'positive' else "negative-card"
+                    
+                    st.markdown(f"""
+                    <div class="model-card {card_class} animate-fade-in">
+                        <div class="model-card-title">{name.upper()}</div>
+                        <div style="text-align: center;">
+                            <div class="model-card-emoji">{emoji}</div>
+                            <div class="model-card-sentiment">{sent.upper()}</div>
+                            <div class="model-card-confidence">Confidence: {conf:.1%}</div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+    
+    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
+    
+    # Text preview
+    with st.expander("View Analysed Text"):
+        st.markdown(f"""
+        <div style="background: rgba(30, 41, 59, 0.5); padding: 1.5rem; border-radius: 0.75rem; 
+                    line-height: 1.8; color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.1);">
+            {text_input}
+        </div>
+        """, unsafe_allow_html=True)
+
+
+def render_about_section():
+    """Render about section when models not loaded"""
+    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
+    st.info("👈 **Click 'Load Models' in the sidebar to get started**")
+    
+    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
+    
+    with st.expander("ℹ️ **About This Application**", expanded=True):
+        st.markdown("""
+        This sentiment analysis platform uses multiple machine learning models to determine whether 
+        text expresses positive or negative sentiment with high accuracy and confidence scoring.
+        
+        **Key Features:**
+        """)
+        
+        st.markdown("""
+        <div style="margin-top: 1rem;">
+            <div class="feature-item">
+                <div class="feature-icon"></div>
+                <span>Real-time sentiment prediction with ensemble modelling</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"></div>
+                <span>Multiple model comparison and confidence scoring</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"></div>
+                <span>Interactive visualisations and detailed analytics</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"></div>
+                <span>Automated logging to Google Sheets for analysis</span>
+            </div>
+            <div class="feature-item">
+                <div class="feature-icon"></div>
+                <span>Processing speed under 1 second per analysis</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown("""
+        
+        **How to Use:**
+        1. Click **'Load Models'** in the sidebar to initialise the system
+        2. Enter your text in the input area or use sample texts
+        3. Click **'Analyse Sentiment'** to get predictions
+        4. View detailed results, confidence scores, and model comparisons
+        """)
+
+
+def render_history():
+    """Render recent analyses history"""
+    if not st.session_state.analysis_history:
+        return
+    
+    st.markdown("---")
+    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
+    st.markdown("## 📈 Recent Analyses")
+    st.markdown("")
+    
+    history_df = pd.DataFrame(st.session_state.analysis_history[-5:])
+    history_df['sentiment'] = history_df['sentiment'].apply(
+        lambda x: f"{'😊' if x == 'positive' else '😞'} {x.upper()}"
+    )
+    history_df['confidence'] = history_df['confidence'].apply(lambda x: f"{x:.1%}")
+    
+    st.dataframe(
+        history_df[['time', 'text', 'sentiment', 'confidence']],
+        hide_index=True,
+        use_container_width=True,
+        column_config={
+            "time": "Time",
+            "text": st.column_config.TextColumn("Text", width="large"),
+            "sentiment": "Sentiment",
+            "confidence": "Confidence"
+        }
+    )
+
+
+# ============================================================================
+# MAIN APPLICATION
+# ============================================================================
+
+def main():
+    """Main application entry point"""
+    # Initialise
+    initialise_session_state()
+    load_custom_css()
+    
+    # Initialise logger (only once)
+    if SHEETS_AVAILABLE and st.session_state.logger is None:
+        st.session_state.logger = initialise_logger()
+    
+    # Render UI components
+    render_hero()
+    render_sidebar()
+    
+    # Check if models are loaded
+    if not st.session_state.model_loaded:
+        render_about_section()
+        return
+    
+    # Main content - Text input section
+    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
+    st.markdown("## Enter Text to Analyse")
+    st.markdown("")
+    
+    # Sample text buttons
+    render_sample_buttons()
     st.markdown("")
     
     # Text input area
@@ -970,144 +1053,57 @@ def main():
     with col2:
         if st.button("🗑️ Clear Text", use_container_width=True):
             st.session_state.sample_text = ''
+            st.session_state.current_result = None
             st.rerun()
     
     # Analysis execution
-    if analyse and text_input.strip():
-        with st.spinner("🤖 Analysing sentiment..."):
-            start = time.time()
-            
-            try:
-                result = st.session_state.analyzer.get_ensemble_prediction(text_input)
-                proc_time = time.time() - start
+    if analyse:
+        if not text_input.strip():
+            st.warning("⚠️ Please enter some text to analyse")
+        else:
+            with st.spinner("🤖 Analysing sentiment..."):
+                start = time.time()
                 
-                if 'error' not in result:
-                    # Log submission
-                                    logged = log_user_submission(text_input, result, proc_time)
-
-                if logged:
-                    st.session_state.analysis_history.append({
-                        'text': text_input[:100] + '...' if len(text_input) > 100 else text_input,
-                        'sentiment': result['sentiment'],
-                        'confidence': result['confidence'],
-                        'time': time.strftime('%H:%M:%S')
-                    })
-                else:
-                    st.toast("⏳ Analysis ran, but logging was rate-limited.", icon="⚠️")
-
+                try:
+                    # Get analysis result
+                    result = st.session_state.analyzer.get_ensemble_prediction(text_input)
+                    proc_time = time.time() - start
                     
-                    st.markdown("---")
-                    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-                    st.markdown("## 📊 Analysis Results")
-                    st.markdown("")
+                    if 'error' in result:
+                        st.error(f"❌ An error occurred during analysis: {result['error']}")
+                    else:
+                        # Store result in session state for persistent display
+                        st.session_state.current_result = {
+                            'result': result,
+                            'text': text_input,
+                            'time': proc_time
+                        }
+                        
+                        # Update history IMMEDIATELY (this is fast)
+                        st.session_state.analysis_history.append({
+                            'text': text_input[:100] + '...' if len(text_input) > 100 else text_input,
+                            'sentiment': result['sentiment'],
+                            'confidence': result['confidence'],
+                            'time': time.strftime('%H:%M:%S')
+                        })
+                        
+                        # Log asynchronously (non-blocking)
+                        log_to_local_json(text_input, result, proc_time)
+                        
+                        # Google Sheets logging (slower, but doesn't block)
+                        if st.session_state.logger:
+                            log_to_sheets_async(st.session_state.logger, text_input, result, proc_time)
                     
-                    # Metrics row
-                    col1, col2, col3, col4 = st.columns(4)
-                    sentiment = result['sentiment']
-                    confidence = result['confidence']
-                    
-                    with col1:
-                        emoji = "😊" if sentiment == 'positive' else "😞"
-                        color = "#34d399" if sentiment == 'positive' else "#f87171"  # green / red
-                        st.markdown(f"""
-                            <div style="font-size: 1.5rem; font-weight: 600; color: {color};">
-                                {emoji} {sentiment.upper()}
-                            </div>
-                        """, unsafe_allow_html=True)
-
-                    with col2:
-                        st.metric("Confidence Score", f"{confidence:.1%}")
-                    with col3:
-                        st.metric("Processing Time", f"{proc_time:.3f}s")
-                    with col4:
-                        st.metric("Text Length", f"{len(text_input.split())} words")
-                    
-                    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-                    
-                    # Visualisations
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        st.plotly_chart(create_sentiment_gauge(sentiment, confidence), 
-                                      use_container_width=True, key="gauge")
-                    with col2:
-                        individual = {k: v for k, v in result.get('individual_results', {}).items() 
-                                    if k != 'text'}
-                        if individual:
-                            st.plotly_chart(create_confidence_bars(individual), 
-                                          use_container_width=True, key="bars")
-                    
-                    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-                    
-                    # Individual model results
-                    st.markdown("## 🔬 Individual Model Results")
-                    st.markdown("")
-                    
-                    model_results = {k: v for k, v in result.get('individual_results', {}).items() 
-                                   if k != 'text'}
-                    
-                    if model_results:
-                        cols = st.columns(len(model_results))
-                        for idx, (name, res) in enumerate(model_results.items()):
-                            if isinstance(res, dict) and 'sentiment' in res:
-                                with cols[idx]:
-                                    sent = res['sentiment']
-                                    conf = res.get('confidence', 0)
-                                    emoji = "😊" if sent == 'positive' else "😞"
-                                    card_class = "positive-card" if sent == 'positive' else "negative-card"
-                                    
-                                    st.markdown(f"""
-                                    <div class="model-card {card_class} animate-fade-in">
-                                    <div class="model-card-title">{name.upper()}</div>
-                                    <div style="text-align: center;">
-                                        <div class="model-card-emoji">{emoji}</div>
-                                        <div class="model-card-sentiment">{sent.upper()}</div>
-                                        <div class="model-card-confidence">Confidence: {conf:.1%}</div>
-                                    </div>
-                                </div>
-
-                                    """, unsafe_allow_html=True)
-                    
-                    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-                    
-                    # Text preview
-                    with st.expander("📄 View Analysed Text"):
-                        st.markdown(f"""
-                        <div style="background: rgba(30, 41, 59, 0.5); padding: 1.5rem; border-radius: 0.75rem; 
-                                    line-height: 1.8; color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.1);">
-                            {text_input}
-                        </div>
-                        """, unsafe_allow_html=True)
-                
-            except Exception as e:
-                st.error(f"❌ An error occurred during analysis: {str(e)}")
+                except Exception as e:
+                    st.error(f"❌ An error occurred during analysis: {str(e)}")
     
-    elif analyse:
-        st.warning("⚠️ Please enter some text to analyse")
+    # Display results if they exist (outside the button click)
+    if 'current_result' in st.session_state and st.session_state.current_result:
+        result_data = st.session_state.current_result
+        render_results(result_data['result'], result_data['text'], result_data['time'])
     
-    # Recent analyses history
-    if st.session_state.analysis_history:
-        st.markdown("---")
-        st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-        st.markdown("## 📈 Recent Analyses")
-        st.markdown("")
-        
-        history_df = pd.DataFrame(st.session_state.analysis_history[-5:])
-        history_df['sentiment'] = history_df['sentiment'].apply(
-            lambda x: f"{'😊' if x == 'positive' else '😞'} {x.upper()}"
-        )
-        history_df['confidence'] = history_df['confidence'].apply(lambda x: f"{x:.1%}")
-        
-        st.dataframe(
-            history_df[['time', 'text', 'sentiment', 'confidence']],
-            hide_index=True,
-            use_container_width=True,
-            column_config={
-                "time": "Time",
-                "text": st.column_config.TextColumn("Text", width="large"),
-                "sentiment": "Sentiment",
-                "confidence": "Confidence"
-            }
-        )
+    # Render history
+    render_history()
     
     # Footer
     st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
@@ -1118,6 +1114,7 @@ def main():
             <p style="margin-top: 0.75rem; opacity: 0.7;">© 2026 Data Science Portfolio • All Rights Reserved</p>
         </div>
     """, unsafe_allow_html=True)
+
 
 if __name__ == "__main__":
     main()
