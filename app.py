@@ -26,10 +26,24 @@ except ImportError:
 # Page configuration
 st.set_page_config(
     page_title="Sentiment Analysis | AI Portfolio",
-    page_icon="🎭",
+    page_icon="assets/sentiment.png",
     layout="wide",
     initial_sidebar_state="expanded"
 )
+
+st.markdown("""
+<style>
+/* Force dark theme regardless of browser mode */
+:root {
+  color-scheme: dark;
+}
+
+html, body, [data-testid="stAppViewContainer"] {
+  background-color: #0f172a !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Custom CSS (preserved from original)
 def load_custom_css():
@@ -46,6 +60,141 @@ def load_custom_css():
         background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
         color: #e5e7eb;
     }
+                
+    /* Fix st.info (light mode override) */
+div[data-testid="stAlert"] {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #e5e7eb !important;
+    border-left: 4px solid #14b8a6 !important;
+}
+
+/* Remove Streamlit blue info background */
+div[data-testid="stAlert"] svg {
+    color: #14b8a6 !important;
+}
+
+                /* Kill white container bleed */
+section[data-testid="stSidebar"],
+div[data-testid="block-container"],
+div[data-testid="stVerticalBlock"],
+div[data-testid="stHorizontalBlock"] {
+    background: transparent !important;
+}
+
+/* Fix expander header in light mode */
+details > summary {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #e5e7eb !important;
+    border-radius: 0.75rem !important;
+}
+
+/* Expander content */
+details > div {
+    background: rgba(15, 23, 42, 0.9) !important;
+}
+
+    /* Improve visibility of st.info text */
+div[data-testid="stAlert"] p {
+    color: #e5e7eb !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+}
+
+/* Make emoji/icon pop */
+div[data-testid="stAlert"] span {
+    filter: brightness(1.3);
+}
+div[data-testid="stAlert"] {
+    background: linear-gradient(
+        135deg,
+        rgba(20, 184, 166, 0.15),
+        rgba(30, 41, 59, 0.95)
+    ) !important;
+    border-left: 4px solid #14b8a6 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+                
+/* Fix spinner background flash */
+div[data-testid="stSpinner"] {
+    background: transparent !important;
+}
+
+/* Spinner text */
+div[data-testid="stSpinner"] > div {
+    color: #14b8a6 !important;
+    font-weight: 600;
+}
+
+/* Prevent white button flash on rerender */
+button {
+    background-color: transparent !important;
+}
+
+                /* ---- Sidebar collapse / expand button ---- */
+button[kind="header"] {
+    background: transparent !important;
+    color: #94a3b8 !important;
+    border-radius: 0.5rem !important;
+    transition: all 0.2s ease;
+}
+
+button[kind="header"]:hover {
+    background: rgba(148, 163, 184, 0.15) !important;
+    color: #e5e7eb !important;
+}
+
+/* Fix arrow icon */
+button[kind="header"] svg {
+    stroke: #94a3b8 !important;
+}
+
+button[kind="header"]:hover svg {
+    stroke: #e5e7eb !important;
+}
+                /* ---- FIX CONTENT SHIFT WHEN SIDEBAR COLLAPSES ---- */
+
+/* Main app container */
+[data-testid="stAppViewContainer"] {
+    padding-left: 0 !important;
+}
+
+/* Block container (main content) */
+[data-testid="block-container"] {
+    max-width: 100% !important;
+    padding-left: 3rem !important;
+    padding-right: 3rem !important;
+    transition: padding 0.25s ease;
+}
+
+/* ---- TRUE FIX: sidebar collapsed ---- */
+body[data-sidebar-state="collapsed"]
+[data-testid="block-container"] {
+    padding-left: 2rem !important;
+    margin-left: 0 !important;
+}
+
+/* Sidebar expanded */
+body[data-sidebar-state="expanded"]
+[data-testid="block-container"] {
+    padding-left: 3rem !important;
+}
+
+/* Prevent hero cards from drifting off-screen */
+.hero-card,
+.hero-container,
+.glass-card {
+    margin-left: auto !important;
+    margin-right: auto !important;
+    left: unset !important;
+}
+/* Lock layout width */
+[data-testid="block-container"] > div {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+
+
     
     [data-testid="stSidebar"] {
         background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
@@ -690,41 +839,71 @@ def render_sidebar():
     with st.sidebar:
         st.markdown("### ⚙️ Settings")
         st.markdown("")
-        
-        if st.button("🚀 Load Models", type="primary", use_container_width=True):
-            with st.spinner("Loading models..."):
-                st.session_state.analyzer = load_analyzer()
-                if st.session_state.analyzer:
-                    st.session_state.model_loaded = True
-                    st.success("✅ Models loaded successfully!")
-        
+
+        # ---- Load Models (no white flash) ----
+        load_clicked = st.button(
+            "🚀 Load Models",
+            type="primary",
+            use_container_width=True,
+            key="load_models_btn"
+        )
+
+        if load_clicked:
+            placeholder = st.empty()
+            placeholder.markdown("""
+            <div style="
+                padding: 0.75rem;
+                border-radius: 0.75rem;
+                background: linear-gradient(135deg, #1e293b, #0f172a);
+                color: #14b8a6;
+                font-weight: 600;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+            ">
+                🤖 Initialising sentiment models…
+            </div>
+            """, unsafe_allow_html=True)
+
+            st.session_state.analyzer = load_analyzer()
+            if st.session_state.analyzer:
+                st.session_state.model_loaded = True
+                placeholder.success("✅ Models loaded successfully!")
+
         st.markdown("")
-        
-        # Logging status with rate limit info
+
+        # ---- Logging status ----
         if SHEETS_AVAILABLE and st.session_state.logger:
             if st.session_state.logger.enabled:
-                st.markdown('<div class="status-badge status-success">✓ Google Sheets Active</div>', 
-                           unsafe_allow_html=True)
-                
-                # Show rate limit stats
+                st.markdown(
+                    '<div class="status-badge status-success">✓ Google Sheets Active</div>',
+                    unsafe_allow_html=True
+                )
+
                 if 'sheets_log_times' in st.session_state:
                     logs_this_hour = len(st.session_state.sheets_log_times)
                     st.markdown(f"""
-                    <div style="margin-top: 0.5rem; padding: 0.5rem; 
-                                background: rgba(52, 211, 153, 0.1); 
-                                border-radius: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
+                    <div style="
+                        margin-top: 0.5rem;
+                        padding: 0.5rem;
+                        background: rgba(52, 211, 153, 0.1);
+                        border-radius: 0.5rem;
+                        font-size: 0.75rem;
+                        color: #94a3b8;
+                    ">
                         📊 Sheets logs this hour: {logs_this_hour}/100<br>
-                        ⚡ Rate limiting active (doesn't affect speed)
+                        ⚡ Rate limiting active
                     </div>
                     """, unsafe_allow_html=True)
             else:
-                st.markdown('<div class="status-badge status-warning">⚠ Local Logging Only</div>', 
-                           unsafe_allow_html=True)
-        
+                st.markdown(
+                    '<div class="status-badge status-warning">⚠ Local Logging Only</div>',
+                    unsafe_allow_html=True
+                )
+
         st.markdown("---")
-        
+
+        # ---- Models ----
         st.markdown("### 🤖 Available Models")
-        st.markdown("")
         st.markdown("""
         <div style="line-height: 2.2;">
             <span class="tag-pill">VADER</span><br>
@@ -734,39 +913,35 @@ def render_sidebar():
             <span class="tag-pill">Ensemble</span>
         </div>
         """, unsafe_allow_html=True)
-        
+
         st.markdown("---")
-        
+
+        # ---- Metrics ----
         st.markdown("### 📊 System Metrics")
-        st.markdown("")
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Accuracy", "94.2%")
         with col2:
             st.metric("Speed", "<1s")
-        
+
+        # ---- History ----
         if st.session_state.analysis_history:
             st.markdown("---")
             st.markdown("### 📜 History")
-            st.markdown("")
             st.write(f"**Total Analyses:** {len(st.session_state.analysis_history)}")
-            
-            # Show local logs count
+
             log_dir = Path("logs")
             if log_dir.exists():
-                log_files = list(log_dir.glob("submissions_*.json"))
                 total_local_logs = 0
-                for log_file in log_files:
+                for log_file in log_dir.glob("submissions_*.json"):
                     try:
-                        with open(log_file, 'r') as f:
-                            logs = json.load(f)
-                            total_local_logs += len(logs)
+                        with open(log_file) as f:
+                            total_local_logs += len(json.load(f))
                     except:
                         pass
-                if total_local_logs > 0:
+                if total_local_logs:
                     st.write(f"**Local Logs:** {total_local_logs}")
-            
-            st.markdown("")
+
             if st.button("🗑️ Clear History", use_container_width=True):
                 st.session_state.analysis_history = []
                 st.rerun()
@@ -797,15 +972,15 @@ def render_sample_buttons():
     
     col1, col2, col3 = st.columns(3)
     with col1:
-        if st.button("✨ Positive Sample", type="secondary", use_container_width=True):
+        if st.button("😊 Positive Sample", type="secondary", use_container_width=True):
             st.session_state.sample_text = samples["Positive"]
             st.rerun()
     with col2:
-        if st.button("⚠️ Negative Sample", type="secondary", use_container_width=True):
+        if st.button("😞 Negative Sample", type="secondary", use_container_width=True):
             st.session_state.sample_text = samples["Negative"]
             st.rerun()
     with col3:
-        if st.button("🔀 Mixed Sample", type="secondary", use_container_width=True):
+        if st.button("😐 Mixed Sample", type="secondary", use_container_width=True):
             st.session_state.sample_text = samples["Mixed"]
             st.rerun()
 
@@ -814,7 +989,7 @@ def render_results(result: Dict[str, Any], text_input: str, proc_time: float):
     """Render analysis results"""
     st.markdown("---")
     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("## 📊 Analysis Results")
+    st.markdown("## Results")
     st.markdown("")
     
     # Metrics row
