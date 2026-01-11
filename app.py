@@ -1,7 +1,3 @@
-"""
-Streamlit Sentiment Analysis App - Optimised & Cleaned
-Fixed rate limiting and performance issues
-"""
 
 import streamlit as st
 import pandas as pd
@@ -27,13 +23,13 @@ try:
 except ImportError:
     SHEETS_AVAILABLE = False
 
+# Page configuration
 st.set_page_config(
     page_title="Sentiment Analysis | AI Portfolio",
-    page_icon="assets/github.svg",
+    page_icon="🎭",
     layout="wide",
     initial_sidebar_state="expanded"
 )
-
 
 # Custom CSS (preserved from original)
 def load_custom_css():
@@ -818,7 +814,7 @@ def render_results(result: Dict[str, Any], text_input: str, proc_time: float):
     """Render analysis results"""
     st.markdown("---")
     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("##  Results")
+    st.markdown("## 📊 Analysis Results")
     st.markdown("")
     
     # Metrics row
@@ -915,7 +911,7 @@ def render_results(result: Dict[str, Any], text_input: str, proc_time: float):
     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
     
     # Text preview
-    with st.expander("View Analysed Text"):
+    with st.expander("📄 View Analysed Text"):
         st.markdown(f"""
         <div style="background: rgba(30, 41, 59, 0.5); padding: 1.5rem; border-radius: 0.75rem; 
                     line-height: 1.8; color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.1);">
@@ -1028,7 +1024,7 @@ def main():
     
     # Main content - Text input section
     st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("## Enter Text to Analyse")
+    st.markdown("## 📝 Enter Text to Analyse")
     st.markdown("")
     
     # Sample text buttons
