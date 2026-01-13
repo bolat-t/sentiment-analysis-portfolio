@@ -853,9 +853,9 @@ def render_rate_limit_bar():
 
 
 
-# ============================================================================
-# MAIN APPLICATION
-# ============================================================================
+# ============================================================================  
+# MAIN APPLICATION  
+# ============================================================================  
 
 def main():
     load_custom_css()
@@ -867,14 +867,10 @@ def main():
             st.session_state.analyzer = load_analyzer("analyze-v1")
             st.session_state.model_loaded = True
             st.write(
-                    "Analyzer loaded from:",
-                    sys.modules[
-                        st.session_state.analyzer.__class__.__module__
-                    ].__file__
-                )
-
+                "Analyzer loaded from:",
+                sys.modules[st.session_state.analyzer.__class__.__module__].__file__
+            )
             st.write("Has analyze():", hasattr(st.session_state.analyzer, "analyze"))
-
 
         if SHEETS_AVAILABLE:
             try:
@@ -901,43 +897,36 @@ def main():
     )
 
     col1, col2, col3 = st.columns([1, 1, 3])
-
     with col1:
         analyze_btn = st.button("Analyze", type="primary")
 
-
     # Analysis
+    analyzer = st.session_state.analyzer
+
     if analyze_btn and text_input.strip():
-        analyzer = st.session_state.analyzer
+        if analyzer is None or not hasattr(analyzer, "analyze"):
+            st.error("Analyzer failed to load correctly. Please refresh the app.")
+            st.stop()
 
-    if analyzer is None or not hasattr(analyzer, "analyze"):
-        st.error("Analyzer failed to load correctly. Please refresh the app.")
-        st.stop()
+        start_time = time.time()
+        with st.spinner("Analyzing sentiment..."):
+            result = analyzer.analyze(text_input)
+            processing_time = time.time() - start_time
+            result["processing_time"] = processing_time
+            st.session_state.current_result = result
 
-    start_time = time.time()
+            # History & logging
+            st.session_state.analysis_history.append({
+                "timestamp": datetime.now().isoformat(),
+                "text": text_input[:200],
+                "result": result
+            })
 
-    with st.spinner("Analyzing sentiment..."):
-        result = analyzer.analyze(text_input)
+            log_to_local_json(text_input, result, processing_time)
+            log_to_sheets_async(st.session_state.logger, text_input, result, processing_time)
 
-
-        processing_time = time.time() - start_time
-        st.session_state.current_result = result
-
-        # History
-        st.session_state.analysis_history.append({
-            "timestamp": datetime.now().isoformat(),
-            "text": text_input[:200],
-            "result": result
-        })
-
-        # Logging (non-blocking)
-        log_to_local_json(text_input, result, processing_time)
-        log_to_sheets_async(
-            st.session_state.logger,
-            text_input,
-            result,
-            processing_time
-        )
+        # Display results here...
+        # (Your code for metrics, plots, model cards, etc.)
 
     # Results
     if st.session_state.get("current_result") is not None:
