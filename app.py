@@ -908,10 +908,17 @@ def main():
 
     # Analysis
     if analyze_btn and text_input.strip():
-        start_time = time.time()
+        analyzer = st.session_state.analyzer
 
-        with st.spinner("Analyzing sentiment..."):
-            result = st.session_state.analyzer.analyze(text_input)
+    if analyzer is None or not hasattr(analyzer, "analyze"):
+        st.error("Analyzer failed to load correctly. Please refresh the app.")
+        st.stop()
+
+    start_time = time.time()
+
+    with st.spinner("Analyzing sentiment..."):
+        result = analyzer.analyze(text_input)
+
 
         processing_time = time.time() - start_time
         st.session_state.current_result = result
