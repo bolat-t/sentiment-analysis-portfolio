@@ -13,6 +13,7 @@ from vaderSentiment.vaderSentiment import SentimentIntensityAnalyzer
 from textblob import TextBlob
 import pickle
 import logging
+import time
 from typing import Dict, List, Tuple, Union
 from pathlib import Path
 
@@ -199,10 +200,73 @@ class SentimentAnalyzer:
         
         return results
     
+    def analyze(self, text: str) -> Dict[str, Union[str, float, Dict]]:
+        """
+        Main analysis method called by Streamlit app.
+        Returns ensemble prediction with model breakdown.
+        """
+        start_time = time.time()
+        
+        # Get all model results
+        model_results = {}
+        
+        # VADER
+        vader_result = self.vader_sentiment(text)
+        if 'sentiment' in vader_result:
+            model_results['vader'] = vader_result
+        
+        # TextBlob
+        textblob_result = self.textblob_sentiment(text)
+        if 'sentiment' in textblob_result:
+            model_results['textblob'] = textblob_result
+        
+        # ML Model
+        ml_result = self.ml_sentiment(text)
+        if 'sentiment' in ml_result and 'error' not in ml_result:
+            model_results['ml'] = ml_result
+        
+        # Transformer
+        if TRANSFORMERS_AVAILABLE and self.transformer_model:
+            transformer_result = self.transformer_sentiment(text)
+            if 'sentiment' in transformer_result and 'error' not in transformer_result:
+                model_results['transformer'] = transformer_result
+        
+        # Calculate ensemble prediction
+        predictions = []
+        weights = []
+        
+        for model_name, result in model_results.items():
+            predictions.append(1 if result['sentiment'] == 'positive' else 0)
+            weights.append(result['confidence'])
+        
+        if not predictions:
+            return {
+                "error": "No valid predictions",
+                "model_results": {},
+                "final_sentiment": "unknown",
+                "confidence": 0.0,
+                "processing_time": time.time() - start_time
+            }
+        
+        # Weighted average for ensemble
+        weighted_prediction = np.average(predictions, weights=weights)
+        final_sentiment = "positive" if weighted_prediction >= 0.5 else "negative"
+        final_confidence = abs(weighted_prediction - 0.5) * 2
+        
+        processing_time = time.time() - start_time
+        
+        return {
+            "final_sentiment": final_sentiment,
+            "confidence": final_confidence,
+            "model_results": model_results,
+            "processing_time": processing_time,
+            "text_length": len(text.split())
+        }
+    
     def batch_analyze(self, texts: List[str]) -> List[Dict]:
         """Analyze multiple texts."""
         logger.info(f"Analyzing {len(texts)} texts...")
-        return [self.analyze_text(text) for text in texts]
+        return [self.analyze(text) for text in texts]
     
     def get_ensemble_prediction(self, text: str) -> Dict[str, Union[str, float]]:
         """Get ensemble prediction from all models."""

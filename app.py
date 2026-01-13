@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -26,10 +25,24 @@ except ImportError:
 # Page configuration
 st.set_page_config(
     page_title="Sentiment Analysis | AI Portfolio",
-    page_icon="🎭",
+    page_icon="assets/sentiment.png",
     layout="wide",
-    initial_sidebar_state="expanded"
+    initial_sidebar_state="collapsed"
 )
+
+st.markdown("""
+<style>
+/* Force dark theme regardless of browser mode */
+:root {
+  color-scheme: dark;
+}
+
+html, body, [data-testid="stAppViewContainer"] {
+  background-color: #0f172a !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
 
 # Custom CSS (preserved from original)
 def load_custom_css():
@@ -46,21 +59,76 @@ def load_custom_css():
         background: linear-gradient(135deg, #0a0a0a 0%, #1a1a2e 100%);
         color: #e5e7eb;
     }
-    
-    [data-testid="stSidebar"] {
-        background: linear-gradient(180deg, #1e293b 0%, #0f172a 100%);
-        border-right: 1px solid rgba(148, 163, 184, 0.1);
-        box-shadow: 4px 0 24px rgba(0, 0, 0, 0.5);
-        width: 400px !important;
-    }
-    
-    [data-testid="stSidebar"] > div:first-child {
-        width: 400px !important;
-    }
-    
-    [data-testid="stSidebar"] * {
-        color: #e5e7eb !important;
-    }
+                
+    /* Fix st.info (light mode override) */
+div[data-testid="stAlert"] {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #e5e7eb !important;
+    border-left: 4px solid #14b8a6 !important;
+}
+
+/* Remove Streamlit blue info background */
+div[data-testid="stAlert"] svg {
+    color: #14b8a6 !important;
+}
+
+                /* Kill white container bleed */
+section[data-testid="stSidebar"],
+div[data-testid="block-container"],
+div[data-testid="stVerticalBlock"],
+div[data-testid="stHorizontalBlock"] {
+    background: transparent !important;
+}
+
+/* Fix expander header in light mode */
+details > summary {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%) !important;
+    color: #e5e7eb !important;
+    border-radius: 0.75rem !important;
+}
+
+/* Expander content */
+details > div {
+    background: rgba(15, 23, 42, 0.9) !important;
+}
+
+    /* Improve visibility of st.info text */
+div[data-testid="stAlert"] p {
+    color: #e5e7eb !important;
+    font-weight: 600 !important;
+    font-size: 1rem !important;
+}
+
+/* Make emoji/icon pop */
+div[data-testid="stAlert"] span {
+    filter: brightness(1.3);
+}
+div[data-testid="stAlert"] {
+    background: linear-gradient(
+        135deg,
+        rgba(20, 184, 166, 0.15),
+        rgba(30, 41, 59, 0.95)
+    ) !important;
+    border-left: 4px solid #14b8a6 !important;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.45);
+}
+                
+/* Fix spinner background flash */
+div[data-testid="stSpinner"] {
+    background: transparent !important;
+}
+
+/* Spinner text */
+div[data-testid="stSpinner"] > div {
+    color: #14b8a6 !important;
+    font-weight: 600;
+}
+
+/* Prevent white button flash on rerender */
+button {
+    background-color: transparent !important;
+}
+
     
     h1 {
         font-size: 3rem !important;
@@ -447,6 +515,32 @@ def load_custom_css():
     .animate-fade-in {
         animation: fadeIn 0.6s ease-out;
     }
+    /* Text area container */
+    div[data-testid="stTextArea"] textarea {
+        background-color: #1e1e1e;
+        color: #ffffff;
+        border: 1px solid #3a3a3a;
+        border-radius: 8px;
+        padding: 12px;
+        font-size: 15px;
+    }
+
+    /* Placeholder text */
+    div[data-testid="stTextArea"] textarea::placeholder {
+        color: #9aa0a6;
+    }
+
+    /* Focus state */
+    div[data-testid="stTextArea"] textarea:focus {
+        border-color: #4f9cff;
+        box-shadow: 0 0 0 1px #4f9cff;
+    }
+
+    /* Label */
+    div[data-testid="stTextArea"] label {
+        color: #e8eaed;
+        font-weight: 600;
+    }
     </style>
     """, unsafe_allow_html=True)
 
@@ -660,343 +754,84 @@ def create_confidence_bars(results: Dict[str, Any]) -> go.Figure:
         xaxis={
             'title': '',
             'color': '#94a3b8',
-            'gridcolor': 'rgba(148, 163, 184, 0.1)',
-            'tickfont': {'size': 14, 'family': 'Inter'}
+            'gridcolor': 'rgba(148,            163, 184, 0.15)'
         },
         yaxis={
             'title': 'Confidence',
+            'tickformat': '.0%',
             'color': '#94a3b8',
-            'range': [0, 1.15],
-            'gridcolor': 'rgba(148, 163, 184, 0.1)',
-            'tickfont': {'size': 14, 'family': 'Inter'}
+            'gridcolor': 'rgba(148, 163, 184, 0.15)',
+            'range': [0, 1.05]
         },
+        plot_bgcolor='rgba(15, 23, 42, 0.6)',
+        paper_bgcolor='rgba(15, 23, 42, 0.6)',
         height=400,
-        showlegend=False,
-        paper_bgcolor="rgba(15, 23, 42, 0.5)",
-        plot_bgcolor="rgba(30, 41, 59, 0.5)",
-        font={'family': 'Inter'},
-        margin=dict(l=60, r=30, t=80, b=60)
+        margin=dict(l=40, r=40, t=80, b=40)
     )
     
     return fig
 
+def render_logging_status():
+    st.markdown("## System Observability")
 
-# ============================================================================
-# UI COMPONENTS
-# ============================================================================
-
-def render_sidebar():
-    """Render sidebar with settings and status"""
-    with st.sidebar:
-        st.markdown("### ⚙️ Settings")
-        st.markdown("")
-        
-        if st.button("🚀 Load Models", type="primary", use_container_width=True):
-            with st.spinner("Loading models..."):
-                st.session_state.analyzer = load_analyzer()
-                if st.session_state.analyzer:
-                    st.session_state.model_loaded = True
-                    st.success("✅ Models loaded successfully!")
-        
-        st.markdown("")
-        
-        # Logging status with rate limit info
-        if SHEETS_AVAILABLE and st.session_state.logger:
-            if st.session_state.logger.enabled:
-                st.markdown('<div class="status-badge status-success">✓ Google Sheets Active</div>', 
-                           unsafe_allow_html=True)
-                
-                # Show rate limit stats
-                if 'sheets_log_times' in st.session_state:
-                    logs_this_hour = len(st.session_state.sheets_log_times)
-                    st.markdown(f"""
-                    <div style="margin-top: 0.5rem; padding: 0.5rem; 
-                                background: rgba(52, 211, 153, 0.1); 
-                                border-radius: 0.5rem; font-size: 0.75rem; color: #94a3b8;">
-                        📊 Sheets logs this hour: {logs_this_hour}/100<br>
-                        ⚡ Rate limiting active (doesn't affect speed)
-                    </div>
-                    """, unsafe_allow_html=True)
-            else:
-                st.markdown('<div class="status-badge status-warning">⚠ Local Logging Only</div>', 
-                           unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown("### 🤖 Available Models")
-        st.markdown("")
-        st.markdown("""
-        <div style="line-height: 2.2;">
-            <span class="tag-pill">VADER</span><br>
-            <span class="tag-pill">TextBlob</span><br>
-            <span class="tag-pill">ML Model</span><br>
-            <span class="tag-pill">Transformer</span><br>
-            <span class="tag-pill">Ensemble</span>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("---")
-        
-        st.markdown("### 📊 System Metrics")
-        st.markdown("")
-        col1, col2 = st.columns(2)
-        with col1:
-            st.metric("Accuracy", "94.2%")
-        with col2:
-            st.metric("Speed", "<1s")
-        
-        if st.session_state.analysis_history:
-            st.markdown("---")
-            st.markdown("### 📜 History")
-            st.markdown("")
-            st.write(f"**Total Analyses:** {len(st.session_state.analysis_history)}")
-            
-            # Show local logs count
-            log_dir = Path("logs")
-            if log_dir.exists():
-                log_files = list(log_dir.glob("submissions_*.json"))
-                total_local_logs = 0
-                for log_file in log_files:
-                    try:
-                        with open(log_file, 'r') as f:
-                            logs = json.load(f)
-                            total_local_logs += len(logs)
-                    except:
-                        pass
-                if total_local_logs > 0:
-                    st.write(f"**Local Logs:** {total_local_logs}")
-            
-            st.markdown("")
-            if st.button("🗑️ Clear History", use_container_width=True):
-                st.session_state.analysis_history = []
-                st.rerun()
-
-
-def render_hero():
-    """Render hero section"""
-    st.markdown("""
-        <div class="hero-section animate-fade-in">
-            <p class="hero-subtitle">NLP & Machine Learning</p>
-            <h1 class="hero-title">Advanced Sentiment Analysis</h1>
-            <p class="hero-description">Multi-model NLP pipeline for real-time sentiment classification</p>
-            <p class="hero-text">
-                Analyse text sentiment using VADER, TextBlob, traditional ML models, and transformer-based 
-                deep learning for accurate classification with confidence scoring.
-            </p>
-        </div>
-    """, unsafe_allow_html=True)
-
-
-def render_sample_buttons():
-    """Render sample text buttons"""
-    samples = {
-        "Positive": "This product is absolutely amazing! The quality exceeded my expectations and the customer service was outstanding. Highly recommended!",
-        "Negative": "Terrible experience. The product broke after one day and customer service was unhelpful. Complete waste of money.",
-        "Mixed": "The product is okay. Some features work well but others are disappointing. Average quality for the price.",
-    }
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        if st.button("✨ Positive Sample", type="secondary", use_container_width=True):
-            st.session_state.sample_text = samples["Positive"]
-            st.rerun()
-    with col2:
-        if st.button("⚠️ Negative Sample", type="secondary", use_container_width=True):
-            st.session_state.sample_text = samples["Negative"]
-            st.rerun()
-    with col3:
-        if st.button("🔀 Mixed Sample", type="secondary", use_container_width=True):
-            st.session_state.sample_text = samples["Mixed"]
-            st.rerun()
-
-
-def render_results(result: Dict[str, Any], text_input: str, proc_time: float):
-    """Render analysis results"""
-    st.markdown("---")
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("## 📊 Analysis Results")
-    st.markdown("")
-    
-    # Metrics row
-    sentiment = result['sentiment']
-    confidence = result['confidence']
-    
-    # Create columns with equal widths
-    col1, col2, col3, col4 = st.columns(4)
-    
-    with col1:
-        emoji = "😊" if sentiment == 'positive' else "😞"
-        color = "#34d399" if sentiment == 'positive' else "#f87171"
-        
-        # Use a custom div that mimics the st.metric styling
-        st.markdown(f"""
-            <div data-testid="stMetric" style="background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-                        border: 1px solid rgba(148, 163, 184, 0.2);
-                        border-left: 4px solid {color};
-                        border-radius: 1rem;
-                        padding: 1.75rem;
-                        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.05);
-                        transition: all 0.3s ease;
-                        backdrop-filter: blur(10px);
-                        text-align: center;
-                        min-height: 140px;
-                        display: flex;
-                        flex-direction: column;
-                        justify-content: center;">
-                <div style="color: #94a3b8; font-size: 0.875rem; font-weight: 600; 
-                            text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 0.5rem;">
-                    SENTIMENT
-                </div>
-                <div style="font-size: 2.5rem; margin: 0.25rem 0;">
-                    {emoji}
-                </div>
-                <div style="font-size: 2rem; font-weight: 800; color: {color}; 
-                            text-transform: uppercase; letter-spacing: 0.05em; line-height: 1.2;">
-                    {sentiment}
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
-    
-    with col2:
-        st.metric("Confidence Score", f"{confidence:.1%}")
-    with col3:
-        st.metric("Processing Time", f"{proc_time:.3f}s")
-    with col4:
-        st.metric("Text Length", f"{len(text_input.split())} words")
-    
-    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-    
-    # Visualisations
-    col1, col2 = st.columns(2)
-    with col1:
-        st.plotly_chart(create_sentiment_gauge(sentiment, confidence), 
-                      use_container_width=True, key="gauge")
-    with col2:
-        individual = {k: v for k, v in result.get('individual_results', {}).items() 
-                    if k != 'text'}
-        if individual:
-            st.plotly_chart(create_confidence_bars(individual), 
-                          use_container_width=True, key="bars")
-    
-    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-    
-    # Individual model results
-    st.markdown("## 🔬 Individual Model Results")
-    st.markdown("")
-    
-    model_results = {k: v for k, v in result.get('individual_results', {}).items() 
-                   if k != 'text'}
-    
-    if model_results:
-        cols = st.columns(len(model_results))
-        for idx, (name, res) in enumerate(model_results.items()):
-            if isinstance(res, dict) and 'sentiment' in res:
-                with cols[idx]:
-                    sent = res['sentiment']
-                    conf = res.get('confidence', 0)
-                    emoji = "😊" if sent == 'positive' else "😞"
-                    card_class = "positive-card" if sent == 'positive' else "negative-card"
-                    
-                    st.markdown(f"""
-                    <div class="model-card {card_class} animate-fade-in">
-                        <div class="model-card-title">{name.upper()}</div>
-                        <div style="text-align: center;">
-                            <div class="model-card-emoji">{emoji}</div>
-                            <div class="model-card-sentiment">{sent.upper()}</div>
-                            <div class="model-card-confidence">Confidence: {conf:.1%}</div>
-                        </div>
-                    </div>
-                    """, unsafe_allow_html=True)
-    
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    
-    # Text preview
-    with st.expander("📄 View Analysed Text"):
-        st.markdown(f"""
-        <div style="background: rgba(30, 41, 59, 0.5); padding: 1.5rem; border-radius: 0.75rem; 
-                    line-height: 1.8; color: #cbd5e1; border: 1px solid rgba(148, 163, 184, 0.1);">
-            {text_input}
-        </div>
-        """, unsafe_allow_html=True)
-
-
-def render_about_section():
-    """Render about section when models not loaded"""
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.info("👈 **Click 'Load Models' in the sidebar to get started**")
-    
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    
-    with st.expander("ℹ️ **About This Application**", expanded=True):
-        st.markdown("""
-        This sentiment analysis platform uses multiple machine learning models to determine whether 
-        text expresses positive or negative sentiment with high accuracy and confidence scoring.
-        
-        **Key Features:**
-        """)
-        
-        st.markdown("""
-        <div style="margin-top: 1rem;">
-            <div class="feature-item">
-                <div class="feature-icon"></div>
-                <span>Real-time sentiment prediction with ensemble modelling</span>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon"></div>
-                <span>Multiple model comparison and confidence scoring</span>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon"></div>
-                <span>Interactive visualisations and detailed analytics</span>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon"></div>
-                <span>Automated logging to Google Sheets for analysis</span>
-            </div>
-            <div class="feature-item">
-                <div class="feature-icon"></div>
-                <span>Processing speed under 1 second per analysis</span>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("""
-        
-        **How to Use:**
-        1. Click **'Load Models'** in the sidebar to initialise the system
-        2. Enter your text in the input area or use sample texts
-        3. Click **'Analyse Sentiment'** to get predictions
-        4. View detailed results, confidence scores, and model comparisons
-        """)
-
-
-def render_history():
-    """Render recent analyses history"""
-    if not st.session_state.analysis_history:
-        return
-    
-    st.markdown("---")
-    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-    st.markdown("## 📈 Recent Analyses")
-    st.markdown("")
-    
-    history_df = pd.DataFrame(st.session_state.analysis_history[-5:])
-    history_df['sentiment'] = history_df['sentiment'].apply(
-        lambda x: f"{'😊' if x == 'positive' else '😞'} {x.upper()}"
+    sheets_enabled = bool(
+        st.session_state.get("logger") 
+        and getattr(st.session_state.logger, "enabled", False)
     )
-    history_df['confidence'] = history_df['confidence'].apply(lambda x: f"{x:.1%}")
-    
-    st.dataframe(
-        history_df[['time', 'text', 'sentiment', 'confidence']],
-        hide_index=True,
-        use_container_width=True,
-        column_config={
-            "time": "Time",
-            "text": st.column_config.TextColumn("Text", width="large"),
-            "sentiment": "Sentiment",
-            "confidence": "Confidence"
-        }
+
+    log_times = st.session_state.get("sheets_log_times", [])
+    logs_last_hour = len(log_times)
+    max_logs = 100
+
+    rate_limited = logs_last_hour >= max_logs
+
+    c1, c2, c3, c4 = st.columns(4)
+
+    with c1:
+        st.metric(
+            "Google Sheets",
+            "Active" if sheets_enabled else "Disabled",
+            delta="Connected" if sheets_enabled else "Fallback Mode"
+        )
+
+    with c2:
+        st.metric(
+            "Logs (Last Hour)",
+            f"{logs_last_hour}/{max_logs}",
+            delta="Rate Limited" if rate_limited else "Within Limits"
+        )
+
+    with c3:
+        st.metric(
+            "Local JSON Logging",
+            "Enabled",
+            delta="Fail-safe Active"
+        )
+
+    with c4:
+        st.metric(
+            "Logging Mode",
+            "Async",
+            delta="Non-blocking UI"
+        )
+
+    st.caption(
+        "Logging runs asynchronously with rate limiting. "
+        "User experience is never blocked."
     )
+
+def render_rate_limit_bar():
+    logs = st.session_state.get("sheets_log_times", [])
+    usage = min(len(logs) / 100, 1.0)
+
+    st.markdown("### Google Sheets Rate Limit")
+    st.progress(usage)
+
+    st.caption(
+        f"{len(logs)} / 100 logs used in the last hour "
+        "• Automatic throttling enabled"
+    )
+
 
 
 # ============================================================================
@@ -1004,113 +839,154 @@ def render_history():
 # ============================================================================
 
 def main():
-    """Main application entry point"""
-    # Initialise
-    initialise_session_state()
     load_custom_css()
-    
-    # Initialise logger (only once)
-    if SHEETS_AVAILABLE and st.session_state.logger is None:
-        st.session_state.logger = initialise_logger()
-    
-    # Render UI components
-    render_hero()
-    render_sidebar()
-    
-    # Check if models are loaded
+    initialise_session_state()
+
+    # Load model once
     if not st.session_state.model_loaded:
-        render_about_section()
-        return
-    
-    # Main content - Text input section
-    st.markdown('<div class="spacing-md"></div>', unsafe_allow_html=True)
-    st.markdown("## 📝 Enter Text to Analyse")
-    st.markdown("")
-    
-    # Sample text buttons
-    render_sample_buttons()
-    st.markdown("")
-    
-    # Text input area
-    text_input = st.text_area(
-        "Your text:",
-        value=st.session_state.get('sample_text', ''),
-        height=180,
-        placeholder="Type or paste your review, comment, feedback, or any text you'd like to analyse for sentiment...",
-        label_visibility="collapsed"
-    )
-    
-    st.markdown("")
-    
-    # Action buttons
-    col1, col2, col3 = st.columns([2.5, 1.5, 4])
-    with col1:
-        analyse = st.button("🔍 Analyse Sentiment", type="primary", use_container_width=True)
-    with col2:
-        if st.button("🗑️ Clear Text", use_container_width=True):
-            st.session_state.sample_text = ''
-            st.session_state.current_result = None
-            st.rerun()
-    
-    # Analysis execution
-    if analyse:
-        if not text_input.strip():
-            st.warning("⚠️ Please enter some text to analyse")
-        else:
-            with st.spinner("🤖 Analysing sentiment..."):
-                start = time.time()
-                
-                try:
-                    # Get analysis result
-                    result = st.session_state.analyzer.get_ensemble_prediction(text_input)
-                    proc_time = time.time() - start
-                    
-                    if 'error' in result:
-                        st.error(f"❌ An error occurred during analysis: {result['error']}")
-                    else:
-                        # Store result in session state for persistent display
-                        st.session_state.current_result = {
-                            'result': result,
-                            'text': text_input,
-                            'time': proc_time
-                        }
-                        
-                        # Update history IMMEDIATELY (this is fast)
-                        st.session_state.analysis_history.append({
-                            'text': text_input[:100] + '...' if len(text_input) > 100 else text_input,
-                            'sentiment': result['sentiment'],
-                            'confidence': result['confidence'],
-                            'time': time.strftime('%H:%M:%S')
-                        })
-                        
-                        # Log asynchronously (non-blocking)
-                        log_to_local_json(text_input, result, proc_time)
-                        
-                        # Google Sheets logging (slower, but doesn't block)
-                        if st.session_state.logger:
-                            log_to_sheets_async(st.session_state.logger, text_input, result, proc_time)
-                    
-                except Exception as e:
-                    st.error(f"❌ An error occurred during analysis: {str(e)}")
-    
-    # Display results if they exist (outside the button click)
-    if 'current_result' in st.session_state and st.session_state.current_result:
-        result_data = st.session_state.current_result
-        render_results(result_data['result'], result_data['text'], result_data['time'])
-    
-    # Render history
-    render_history()
-    
-    # Footer
-    st.markdown('<div class="spacing-lg"></div>', unsafe_allow_html=True)
-    st.markdown("---")
+        with st.spinner("Loading sentiment model..."):
+            st.session_state.analyzer = load_analyzer()
+            st.session_state.model_loaded = True
+
+        if SHEETS_AVAILABLE:
+            try:
+                st.session_state.logger = initialise_logger()
+            except Exception:
+                st.session_state.logger = None
+
+    # Hero section
     st.markdown("""
-        <div style="text-align: center; color: #64748b; font-size: 0.875rem; padding: 2rem 0 1rem 0;">
-            <p style="font-weight: 600;">Built with Python, Scikit-learn, Transformers & Streamlit</p>
-            <p style="margin-top: 0.75rem; opacity: 0.7;">© 2026 Data Science Portfolio • All Rights Reserved</p>
+    <div class="hero-section animate-fade-in">
+        <div class="hero-subtitle">Natural Language Processing</div>
+        <div class="hero-title">AI Sentiment Analysis</div>
+        <div class="hero-description">
+            Analyze text sentiment using an ensemble of ML and rule-based models.
         </div>
+    </div>
     """, unsafe_allow_html=True)
 
+    # Input
+    text_input = st.text_area(
+        "Enter text to analyze",
+        height=180,
+        placeholder="Paste a review, tweet, or paragraph here..."
+    )
+
+    col1, col2, col3 = st.columns([1, 1, 3])
+
+    with col1:
+        analyze_btn = st.button("Analyze", type="primary")
+
+
+    # Analysis
+    if analyze_btn and text_input.strip():
+        start_time = time.time()
+
+        with st.spinner("Analyzing sentiment..."):
+            result = st.session_state.analyzer.analyze(text_input)
+
+        processing_time = time.time() - start_time
+        st.session_state.current_result = result
+
+        # History
+        st.session_state.analysis_history.append({
+            "timestamp": datetime.now().isoformat(),
+            "text": text_input[:200],
+            "result": result
+        })
+
+        # Logging (non-blocking)
+        log_to_local_json(text_input, result, processing_time)
+        log_to_sheets_async(
+            st.session_state.logger,
+            text_input,
+            result,
+            processing_time
+        )
+
+    # Results
+    if st.session_state.get("current_result") is not None:
+
+        result = st.session_state.current_result
+
+        st.markdown("## Results")
+
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Final Sentiment", result["final_sentiment"].upper())
+        with m2:
+            st.metric("Confidence", f"{result['confidence']:.1%}")
+        with m3:
+            st.metric("Processing Time", f"{result['processing_time']:.2f}s")
+
+        st.plotly_chart(
+            create_sentiment_gauge(
+                result["final_sentiment"],
+                result["confidence"]
+            ),
+            use_container_width=True
+        )
+
+        st.plotly_chart(
+            create_confidence_bars(result["model_results"]),
+            use_container_width=True
+        )
+
+        
+
+        # Model cards
+        st.markdown("## Model Breakdown")
+        cols = st.columns(len(result["model_results"]))
+
+        for col, (model, r) in zip(cols, result["model_results"].items()):
+            sentiment_class = "positive-card" if r["sentiment"] == "positive" else "negative-card"
+            emoji = "😊" if r["sentiment"] == "positive" else "😠"
+
+            with col:
+                st.markdown(f"""
+                <div class="model-card {sentiment_class}">
+                    <div class="model-card-title">{model.upper()}</div>
+                    <div class="model-card-emoji">{emoji}</div>
+                    <div class="model-card-sentiment">{r['sentiment'].upper()}</div>
+                    <div class="model-card-confidence">
+                        Confidence: {r['confidence']:.1%}
+                    </div>
+                </div>
+                """, unsafe_allow_html=True)
+        # ===============================
+    # LOGGING / OBSERVABILITY
+    # ===============================
+    with st.expander("Logging", expanded=False):
+        render_logging_status()
+        render_rate_limit_bar()
+
+
+    # Footer
+    st.markdown("---")
+    st.info("Built for AI Portfolio • Streamlit • NLP • ML Ensemble")
+
+with st.expander(" Logging Architecture (Production Pattern)"):
+    st.markdown("""
+    **Request Flow**
+
+    🧠 Sentiment Analysis  
+    → ⚡ UI Updates Immediately  
+    → 📝 Local JSON Logging (Always)  
+    → ☁️ Google Sheets (Async + Rate Limited)  
+
+    **Resilience Features**
+    - Non-blocking background logging
+    - Per-minute + per-hour rate limiting
+    - Silent failure handling
+    - Automatic local fallback
+
+    Designed to mirror real production telemetry pipelines.
+    """)
+
+
+# ============================================================================
+# ENTRY POINT
+# ============================================================================
 
 if __name__ == "__main__":
     main()
