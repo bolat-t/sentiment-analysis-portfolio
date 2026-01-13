@@ -687,8 +687,8 @@ def load_analyzer(_cache_bust: str):
         return analyzer
 
     except Exception as e:
-        st.error(f"Failed to load analyser: {e}")
-        return None
+        raise RuntimeError(f"Failed to load analyser: {e}")
+
 
 
 
@@ -864,13 +864,13 @@ def main():
     # Load model once
     if not st.session_state.model_loaded:
         with st.spinner("Loading sentiment model..."):
-            st.session_state.analyzer = load_analyzer("v1")
-            st.session_state.model_loaded = True
-            st.write(
-                "Analyzer loaded from:",
-                sys.modules[st.session_state.analyzer.__class__.__module__].__file__
-            )
-            st.write("Has analyze():", hasattr(st.session_state.analyzer, "analyze"))
+            try:
+                st.session_state.analyzer = load_analyzer("v1")
+                st.session_state.model_loaded = True
+            except Exception as e:
+                st.error(str(e))
+                st.stop()
+
 
         if SHEETS_AVAILABLE:
             try:
