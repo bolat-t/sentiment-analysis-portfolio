@@ -864,7 +864,7 @@ def main():
     # Load model once
     if not st.session_state.model_loaded:
         with st.spinner("Loading sentiment model..."):
-            st.session_state.analyzer = load_analyzer()
+            st.session_state.analyzer = load_analyzer("v1")
             st.session_state.model_loaded = True
             st.write(
                 "Analyzer loaded from:",
