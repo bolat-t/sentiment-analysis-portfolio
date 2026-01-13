@@ -670,21 +670,26 @@ def log_to_local_json(text: str, result: Dict[str, Any], processing_time: float)
 # MODEL LOADING
 # ============================================================================
 
-@st.cache_resource
-def load_analyzer():
-    """Load sentiment analyser with caching"""
+
+@st.cache_resource(show_spinner=False)
+def load_analyzer(_cache_bust: str):
+    """Load sentiment analyser with caching and cache-busting."""
     try:
         analyzer = SentimentAnalyzer()
+
         if not analyzer.load_ml_model():
             collector = DataCollector()
             preprocessor = TextPreprocessor()
             df = collector.get_combined_dataset()
             df_processed = preprocessor.preprocess_dataframe(df)
             analyzer.train_ml_model(df_processed)
+
         return analyzer
+
     except Exception as e:
         st.error(f"Failed to load analyser: {e}")
         return None
+
 
 
 # ============================================================================
@@ -859,8 +864,17 @@ def main():
     # Load model once
     if not st.session_state.model_loaded:
         with st.spinner("Loading sentiment model..."):
-            st.session_state.analyzer = load_analyzer()
+            st.session_state.analyzer = load_analyzer("analyze-v1")
             st.session_state.model_loaded = True
+            st.write(
+                    "Analyzer loaded from:",
+                    sys.modules[
+                        st.session_state.analyzer.__class__.__module__
+                    ].__file__
+                )
+
+            st.write("Has analyze():", hasattr(st.session_state.analyzer, "analyze"))
+
 
         if SHEETS_AVAILABLE:
             try:
