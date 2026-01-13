@@ -44,6 +44,20 @@ html, body, [data-testid="stAppViewContainer"] {
 """, unsafe_allow_html=True)
 
 
+st.markdown("""
+<style>
+/* Force dark theme regardless of browser mode */
+:root {
+  color-scheme: dark;
+}
+
+html, body, [data-testid="stAppViewContainer"] {
+  background-color: #0f172a !important;
+}
+</style>
+""", unsafe_allow_html=True)
+
+
 # Custom CSS (preserved from original)
 def load_custom_css():
     st.markdown("""
