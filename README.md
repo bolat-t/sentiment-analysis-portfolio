@@ -14,7 +14,7 @@ A comprehensive sentiment analysis toolkit implementing multiple AI/ML approache
 ## 🚀 Quick Start
 
 ```bash
-git clone https://github.com/yourusername/sentiment-analysis-portfolio.git
+git clone https://github.com/bolat-t/sentiment-analysis-portfolio.git
 cd sentiment-analysis-portfolio
 pip install -r requirements.txt
 python main.py
